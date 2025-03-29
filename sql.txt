@@ -1,0 +1,112 @@
+CREATE TABLE `Dish` (
+    `Dish Id` VARCHAR(255) PRIMARY KEY,
+    `Name` VARCHAR(255),
+    `Price` INT,
+    `Discription` VARCHAR(255),
+    `Rating` DOUBLE,
+    `Cooking Time` VARCHAR(255),
+    `Images` JSON,
+    `Type of Dish` JSON,
+    `Genre of Taste` JSON,
+    `Available` BOOLEAN
+);
+
+http://localhost:3000/Dish
+
+{
+  "Name": "Butter Chicken",
+  "Price": 350,
+  "Discription": "Tender chicken cooked in a creamy tomato sauce",
+  "Rating": 4.5,
+  "Cooking Time": "25 mins",
+  "Images": ["butter_chicken1.jpg", "butter_chicken2.jpg"],
+  "Type of Dish": ["Main Course", "Non-Veg"],
+  "Genre of Taste": ["Creamy", "Spicy"],
+  "Available": true
+}
+
+CREATE TABLE `Customer` (
+    `Customer Id` VARCHAR(255) PRIMARY KEY,
+    `Customer Name` VARCHAR(255),
+    `Contact Number` INT,
+    `Email` VARCHAR(255),
+    `Password` VARCHAR(255),
+    `Images` JSON
+);
+
+http://localhost:3000/Customer
+{
+  "Customer Name": "John Doe",
+  "Contact Number": 1234567890,
+  "Email": "john@example.com",
+  "Password": "securepassword",
+  "Images": ["profile.jpg"]
+}
+
+http://localhost:3000/Customer/login
+login
+{
+  "email": "john@example.com",
+  "password": "securepassword"
+}
+
+CREATE TABLE `Order` (
+    `Order Id` VARCHAR(255) PRIMARY KEY,
+    `Customer Id` VARCHAR(255),
+    `Table No` VARCHAR(255),
+    `Amount` DOUBLE,
+    `Time` VARCHAR(255),
+    `Date` DATE,
+    `Dishes` JSON,
+    `Payment Status` BOOLEAN,
+    `Serving Status` BOOLEAN
+);
+
+http://localhost:3000/Order
+{
+  "Customer Id": "CUSTOMER-1",
+  "Table No": "T-5",
+  "Amount": 450.50,
+  "Time": "19:30",
+  "Date": "2023-06-15",
+  "Dishes": [
+    {"Dish Id": "DISH-1", "Quantity": 2},
+    {"Dish Id": "DISH-3", "Quantity": 1}
+  ],
+  "Payment Status": false,
+  "Serving Status": false
+}
+
+CREATE TABLE `Chef` (
+    `Chef Id` VARCHAR(255) PRIMARY KEY,
+    `Name` VARCHAR(255),
+    `Email` VARCHAR(255),
+    `Password` VARCHAR(255)
+);
+
+http://localhost:3000/Chef
+{
+  "Name": "Gordon Ramsay",
+  "Email": "gordon@restaurant.com",
+  "Password": "hellskitchen"
+}
+
+http://localhost:3000/Chef/login
+{
+  "email": "gordon@restaurant.com",
+  "password": "hellskitchen"
+}
+
+CREATE TABLE `Robot` (
+    `Robot Id` VARCHAR(255) PRIMARY KEY,
+    `Order Id` VARCHAR(255),
+    `Customer Id` VARCHAR(255),
+    `Status` BOOLEAN
+);
+
+http://localhost:3000/Robot
+{
+  "Order Id": "ORDER-1",
+  "Customer Id": "CUSTOMER-1",
+  "Status": false
+}
