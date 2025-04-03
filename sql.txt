@@ -110,3 +110,15 @@ http://localhost:3000/Robot
   "Customer Id": "CUSTOMER-1",
   "Status": false
 }
+
+
+CREATE TABLE `Table` (
+  `Table No` INT,
+  `Customer ID` VARCHAR(255)
+);
+
+http://localhost:3000/Table/
+{
+  "tableNo": 1,
+  "customerId": "CUST123"
+}

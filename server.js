@@ -44,6 +44,7 @@ import CustomerRouter from './Router/Customer.router.js';
 import OrderRouter from './Router/Order.router.js';
 import ChefRouter from './Router/Chef.router.js';
 import RobotRouter from './Router/Robot.router.js';
+import TableRouter from './Router/table.router.js'
 
 // Apply routes
 app.use('/Dish', DishRouter);
@@ -51,6 +52,7 @@ app.use('/Customer', CustomerRouter);
 app.use('/Order', OrderRouter);
 app.use('/Chef', ChefRouter);
 app.use('/Robot', RobotRouter);
+app.use('/Table', TableRouter);
 
 // Global error handler
 app.use((err, req, res, next) => {
