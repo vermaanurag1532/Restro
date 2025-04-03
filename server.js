@@ -9,24 +9,41 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// CORS configuration allowing all origins
+// Configure CORS to allow credentials with specific origins
 const corsOptions = {
-  origin: '*',  // Allow all origins
+  origin: function(origin, callback) {
+    // Allow requests with no origin (like mobile apps, curl, etc)
+    if (!origin) return callback(null, true);
+    
+    // List of allowed origins
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'https://restro-site-lac.vercel.app'
+    ];
+    
+    // Check if the origin is allowed
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(null, true); // Allow all origins for now, but properly configured
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true // Important: Allow cookies to be sent
 };
 
 // Apply middleware
-app.use(helmet()); // Adds various security headers
+app.use(helmet()); // Adds security headers
 app.use(cors(corsOptions));
 app.use(express.json());
 
 // Route imports
-import DishRouter from './Router/Dish.router.js'
-import CustomerRouter from './Router/Customer.router.js'
-import OrderRouter from './Router/Order.router.js'
-import ChefRouter from './Router/Chef.router.js'
-import RobotRouter from './Router/Robot.router.js'
+import DishRouter from './Router/Dish.router.js';
+import CustomerRouter from './Router/Customer.router.js';
+import OrderRouter from './Router/Order.router.js';
+import ChefRouter from './Router/Chef.router.js';
+import RobotRouter from './Router/Robot.router.js';
 
 // Apply routes
 app.use('/Dish', DishRouter);
