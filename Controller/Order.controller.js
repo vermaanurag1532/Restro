@@ -39,6 +39,21 @@ class OrderController {
 
     async updateOrder(req, res) {
         try {
+            // Validate that if dishes are provided, they have the correct format
+            if (req.body.Dishes) {
+                const hasValidDishes = req.body.Dishes.every(dish => 
+                    dish['Dish Id'] && 
+                    typeof dish.Quantity === 'number' && 
+                    dish.Quantity > 0
+                );
+                
+                if (!hasValidDishes) {
+                    return res.status(400).json({ 
+                        message: "Each dish must have a 'Dish Id' and a positive 'Quantity'"
+                    });
+                }
+            }
+            
             const updatedOrder = await orderService.updateOrder(req.params.id, req.body);
             res.json(updatedOrder);
         } catch (error) {

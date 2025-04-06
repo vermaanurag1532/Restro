@@ -66,7 +66,15 @@ class OrderRepository {
     async updateOrder(orderId, orderData) {
         if (orderData['Order Id']) delete orderData['Order Id'];
         
-        const processedData = { ...orderData };
+        // Get existing order
+        const currentOrder = await this.getOrderById(orderId);
+        if (!currentOrder) return null;
+        
+        const processedData = { 
+            ...orderData,
+        };
+        
+        // Handle dishes update
         if (orderData.Dishes) {
             processedData.Dishes = JSON.stringify(orderData.Dishes);
         }
