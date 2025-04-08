@@ -114,7 +114,8 @@ http://localhost:3000/Robot
 
 CREATE TABLE `Table` (
   `Table No` INT,
-  `Customer ID` VARCHAR(255)
+  `Customer ID` VARCHAR(255),
+  `Order Id` VARCHAR(255)
 );
 
 http://localhost:3000/Table/
@@ -122,3 +123,14 @@ http://localhost:3000/Table/
   "tableNo": 1,
   "customerId": "CUST123"
 }
+
+
+CREATE TABLE `Admin` (
+    `Admin Id` VARCHAR(255) PRIMARY KEY,
+    `Admin Name` VARCHAR(255),
+    `Contact Number` INT,
+    `Email` VARCHAR(255),
+    `Password` VARCHAR(255),
+    `Role` VARCHAR(255),
+    `Images` JSON
+);

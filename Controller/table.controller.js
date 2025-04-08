@@ -36,8 +36,8 @@ const TableController = {
 
     createTable: async (req, res) => {
         try {
-            const { tableNo, customerId } = req.body;
-            await TableService.createTable(tableNo, customerId);
+            const { tableNo, customerId, orderId } = req.body;
+            await TableService.createTable(tableNo, customerId, orderId);
             res.status(201).json({ message: "Table created successfully" });
         } catch (error) {
             res.status(500).json({ message: error.message });
@@ -48,7 +48,8 @@ const TableController = {
         try {
             const { tableNo } = req.params;
             const { customerId } = req.body;
-            await TableService.updateTable(tableNo, customerId);
+            const { orderId } = req.body;
+            await TableService.updateTable(tableNo, customerId, orderId);
             res.json({ message: "Table updated successfully" });
         } catch (error) {
             res.status(500).json({ message: error.message });

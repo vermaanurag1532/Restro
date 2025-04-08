@@ -28,20 +28,20 @@ const TableRepository = {
         });
     },
 
-    create: (tableNo, customerId) => {
+    create: (tableNo, customerId, orderId) => {
         return new Promise((resolve, reject) => {
-            connection.query('INSERT INTO `Table` (`Table No`, `Customer ID`) VALUES (?, ?)', 
-            [tableNo, customerId], (err, results) => {
+            connection.query('INSERT INTO `Table` (`Table No`, `Customer ID`, `Order Id`) VALUES (?, ?, ?)', 
+            [tableNo, customerId, orderId], (err, results) => {
                 if (err) reject(err);
                 resolve(results);
             });
         });
     },
 
-    update: (tableNo, customerId) => {
+    update: (tableNo, customerId, orderId) => {
         return new Promise((resolve, reject) => {
-            connection.query('UPDATE `Table` SET `Customer ID` = ? WHERE `Table No` = ?', 
-            [customerId, tableNo], (err, results) => {
+            connection.query('UPDATE `Table` SET `Customer ID` = ? AND `Order Id` = ? WHERE `Table No` = ?', 
+            [customerId, tableNo, orderId], (err, results) => {
                 if (err) reject(err);
                 resolve(results);
             });
@@ -59,3 +59,5 @@ const TableRepository = {
 };
 
 export default TableRepository;
+
+

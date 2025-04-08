@@ -13,12 +13,12 @@ const TableService = {
         return await TableRepository.getByCustomerId(customerId);
     },
 
-    createTable: async (tableNo, customerId) => {
-        return await TableRepository.create(tableNo, customerId);
+    createTable: async (tableNo, customerId, orderId) => {
+        return await TableRepository.create(tableNo, customerId, orderId);
     },
 
-    updateTable: async (tableNo, customerId) => {
-        return await TableRepository.update(tableNo, customerId);
+    updateTable: async (tableNo, customerId , orderId) => {
+        return await TableRepository.update(tableNo, customerId, orderId);
     },
 
     deleteTable: async (tableNo) => {
