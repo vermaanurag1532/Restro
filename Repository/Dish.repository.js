@@ -3,7 +3,7 @@ import connection from '../Connection/Connection.js';
 class DishRepository {
     async getNextDishId() {
         // Get the highest current Dish ID
-        const query = 'SELECT MAX(CAST(SUBSTRING(`Dish Id`, 6) AS UNSIGNED)) as maxId FROM Dish';
+        const query = 'SELECT MAX(CAST(SUBSTRING(`DishId`, 6) AS UNSIGNED)) as maxId FROM Dish';
         const [rows] = await connection.promise().query(query);
         const maxId = rows[0].maxId || 0; // If no dishes exist, start from 0
         return `DISH-${maxId + 1}`;
@@ -37,7 +37,7 @@ class DishRepository {
             
             // Add debug logging
             console.log('Raw DB rows:', rows.map(r => ({
-                id: r['Dish Id'],
+                id: r['DishId'],
                 imagesRaw: r.Images,
                 typeRaw: r['Type of Dish'],
                 genreRaw: r['Genre of Taste']
@@ -57,7 +57,7 @@ class DishRepository {
     
     async getDishById(dishId) {
         try {
-            const query = 'SELECT * FROM Dish WHERE `Dish Id` = ?';
+            const query = 'SELECT * FROM Dish WHERE `DishId` = ?';
             const [rows] = await connection.promise().query(query, [dishId]);
             if (rows.length === 0) return null;
             
@@ -88,7 +88,7 @@ class DishRepository {
         // Stringify JSON fields
         const processedData = {
             ...dishData,
-            'Dish Id': newDishId,
+            'DishId': newDishId,
             Images: JSON.stringify(dishData.Images),
             'Type of Dish': JSON.stringify(dishData['Type of Dish']),
             'Genre of Taste': JSON.stringify(dishData['Genre of Taste'])
@@ -101,8 +101,8 @@ class DishRepository {
 
     async updateDish(dishId, dishData) {
         // Don't allow updating the Dish Id
-        if (dishData['Dish Id']) {
-            delete dishData['Dish Id'];
+        if (dishData['DishId']) {
+            delete dishData['DishId'];
         }
         
         // Stringify JSON fields if they exist in the update data
@@ -111,13 +111,13 @@ class DishRepository {
         if (dishData['Type of Dish']) processedData['Type of Dish'] = JSON.stringify(dishData['Type of Dish']);
         if (dishData['Genre of Taste']) processedData['Genre of Taste'] = JSON.stringify(dishData['Genre of Taste']);
         
-        const query = 'UPDATE Dish SET ? WHERE `Dish Id` = ?';
+        const query = 'UPDATE Dish SET ? WHERE `DishId` = ?';
         await connection.promise().query(query, [processedData, dishId]);
         return this.getDishById(dishId);
     }
 
     async deleteDish(dishId) {
-        const query = 'DELETE FROM Dish WHERE `Dish Id` = ?';
+        const query = 'DELETE FROM Dish WHERE `DishId` = ?';
         const [result] = await connection.promise().query(query, [dishId]);
         return result.affectedRows > 0;
     }

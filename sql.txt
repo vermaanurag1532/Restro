@@ -1,5 +1,5 @@
 CREATE TABLE `Dish` (
-    `Dish Id` VARCHAR(255) PRIMARY KEY,
+    `DishId` VARCHAR(255) PRIMARY KEY,
     `Name` VARCHAR(255),
     `Price` INT,
     `Discription` VARCHAR(255),
