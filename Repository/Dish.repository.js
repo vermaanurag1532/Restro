@@ -96,7 +96,7 @@ class DishRepository {
         
         const query = 'INSERT INTO Dish SET ?';
         const [result] = await connection.promise().query(query, [processedData]);
-        return { ...dishData, 'Dish Id': newDishId };
+        return { ...dishData, 'DishId': newDishId };
     }
 
     async updateDish(dishId, dishData) {

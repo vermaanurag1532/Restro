@@ -42,9 +42,9 @@ class OrderService {
             
             // Calculate price of all new dishes
             for (const newDish of orderData.Dishes) {
-                const dishDetails = await dishRepository.getDishById(newDish['Dish Id']);
+                const dishDetails = await dishRepository.getDishById(newDish['DishId']);
                 if (!dishDetails) {
-                    throw new Error(`Dish with ID ${newDish['Dish Id']} not found`);
+                    throw new Error(`Dish with ID ${newDish['DishId']} not found`);
                 }
                 
                 additionalAmount += dishDetails.Price * newDish.Quantity;
@@ -73,9 +73,9 @@ class OrderService {
         let totalAmount = 0;
         
         for (const dish of dishes) {
-            const dishDetails = await dishRepository.getDishById(dish['Dish Id']);
+            const dishDetails = await dishRepository.getDishById(dish['DishId']);
             if (!dishDetails) {
-                throw new Error(`Dish with ID ${dish['Dish Id']} not found`);
+                throw new Error(`Dish with ID ${dish['DishId']} not found`);
             }
             
             totalAmount += dishDetails.Price * dish.Quantity;

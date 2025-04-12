@@ -42,14 +42,14 @@ class OrderController {
             // Validate that if dishes are provided, they have the correct format
             if (req.body.Dishes) {
                 const hasValidDishes = req.body.Dishes.every(dish => 
-                    dish['Dish Id'] && 
+                    dish['DishId'] && 
                     typeof dish.Quantity === 'number' && 
                     dish.Quantity > 0
                 );
                 
                 if (!hasValidDishes) {
                     return res.status(400).json({ 
-                        message: "Each dish must have a 'Dish Id' and a positive 'Quantity'"
+                        message: "Each dish must have a 'DishId' and a positive 'Quantity'"
                     });
                 }
             }
