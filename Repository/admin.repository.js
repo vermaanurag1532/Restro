@@ -53,6 +53,15 @@ const AdminRepository = {
         resolve(results);
       });
     });
+  },
+
+  findByEmail: (email) => {
+    return new Promise((resolve, reject) => {
+      connection.query('SELECT * FROM Admin WHERE Email = ?', [email], (err, results) => {
+        if (err) return reject(err);
+        resolve(results[0]);
+      });
+    });
   }
 };
 

@@ -59,5 +59,3 @@ const TableRepository = {
 };
 
 export default TableRepository;
-
-

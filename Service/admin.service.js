@@ -37,6 +37,14 @@ const AdminService = {
 
   deleteAdmin: async (adminId) => {
     return await AdminRepository.remove(adminId);
+  },
+
+  loginAdmin: async (email, password) => {
+    const admin = await AdminRepository.findByEmail(email);
+    if (!admin || admin.Password !== password) {
+      return null;
+    }
+    return admin;
   }
 };
 

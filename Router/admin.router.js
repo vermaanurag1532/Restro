@@ -8,5 +8,6 @@ AdminRouter.get('/:id', AdminController.getAdminById);
 AdminRouter.post('/', AdminController.createAdmin);
 AdminRouter.put('/:id', AdminController.updateAdmin);
 AdminRouter.delete('/:id', AdminController.deleteAdmin);
+AdminRouter.post('/login', AdminController.loginAdmin);
 
 export default AdminRouter;

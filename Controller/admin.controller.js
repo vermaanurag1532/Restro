@@ -45,6 +45,31 @@ const AdminController = {
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
+  },
+
+  loginAdmin: async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      if (!email || !password) {
+        return res.status(400).json({ message: 'Email and password are required' });
+      }
+      
+      const admin = await AdminService.loginAdmin(email, password);
+      if (!admin) {
+        return res.status(401).json({ message: 'Invalid credentials' });
+      }
+      
+      res.json({
+        message: 'Login successful',
+        admin: {
+          'Admin Id': admin['Admin Id'],
+          'Admin Name': admin['Admin Name'],
+          'Role': admin.Role
+        }
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
   }
 };
 
