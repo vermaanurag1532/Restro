@@ -10,6 +10,15 @@ const AdminController = {
     }
   },
 
+  getAllChefs: async (req, res) => {
+    try {
+      const admins = await AdminService.getAllChefs();
+      res.json(admins);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  },
+
   getAdminById: async (req, res) => {
     try {
       const admin = await AdminService.getAdminById(req.params.id);

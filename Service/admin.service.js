@@ -5,6 +5,10 @@ const AdminService = {
     return await AdminRepository.getAll();
   },
 
+  getAllChefs: async () => {
+    return await AdminRepository.getAllChef();
+  },
+
   getAdminById: async (adminId) => {
     return await AdminRepository.getById(adminId);
   },

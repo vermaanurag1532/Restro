@@ -3,7 +3,16 @@ import connection from '../Connection/Connection.js';
 const AdminRepository = {
   getAll: () => {
     return new Promise((resolve, reject) => {
-      connection.query('SELECT * FROM Admin', (err, results) => {
+      connection.query('SELECT * FROM Admin WHERE `Role`= "Manager"', (err, results) => {
+        if (err) return reject(err);
+        resolve(results);
+      });
+    });
+  },
+
+  getAllChef: () => {
+    return new Promise((resolve, reject) => {
+      connection.query('SELECT * FROM Admin WHERE `Role`= "Chef"', (err, results) => {
         if (err) return reject(err);
         resolve(results);
       });
