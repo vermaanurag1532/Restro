@@ -1,4 +1,5 @@
 import connection from '../Connection/Connection.js';
+import TableRepository from './table.repository.js'; // Update this path according to your project structure
 
 class OrderRepository {
     async getNextOrderId() {
@@ -58,8 +59,21 @@ class OrderRepository {
             Dishes: JSON.stringify(orderData.Dishes || [])
         };
         
+        // Add the order
         const query = 'INSERT INTO `Order` SET ?';
         const [result] = await connection.promise().query(query, [processedData]);
+        
+        // Update the table with this order ID
+        if (orderData['Customer Id']) {
+            const tables = await TableRepository.getByCustomerId(orderData['Customer Id']);
+            
+            // If customer has a table assigned, update it with the new order ID
+            if (tables && tables.length > 0) {
+                const table = tables[0]; // Using the first table if there are multiple
+                await TableRepository.update(table['Table No'], orderData['Customer Id'], newOrderId);
+            }
+        }
+        
         return { ...orderData, 'Order Id': newOrderId };
     }
 

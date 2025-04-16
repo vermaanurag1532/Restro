@@ -3,10 +3,27 @@ import bcrypt from 'bcrypt';
 
 class CustomerRepository {
     async getNextCustomerId() {
-        const query = 'SELECT MAX(CAST(SUBSTRING(`Customer Id`, 9) AS UNSIGNED)) as maxId FROM Customer';
-        const [rows] = await connection.promise().query(query);
-        const maxId = rows[0].maxId || 0;
-        return `CUSTOMER-${maxId + 1}`;
+        try {
+            // Modified query to handle numeric IDs safely
+            const query = 'SELECT `Customer Id` FROM Customer ORDER BY `Customer Id` DESC LIMIT 1';
+            const [rows] = await connection.promise().query(query);
+            
+            if (rows.length === 0) return 'CUSTOMER-1';
+            
+            const lastId = rows[0]['Customer Id'];
+            const idParts = lastId.split('-');
+            
+            if (idParts.length !== 2) return 'CUSTOMER-1';
+            
+            const lastNum = parseInt(idParts[1], 10);
+            if (isNaN(lastNum)) return 'CUSTOMER-1';
+            
+            return `CUSTOMER-${lastNum + 1}`;
+        } catch (error) {
+            console.error('Error generating customer ID:', error);
+            // Fallback to a timestamp-based ID if there's an error
+            return `CUSTOMER-${Date.now()}`;
+        }
     }
 
     safeJsonParse(jsonString) {

@@ -40,10 +40,17 @@ const TableRepository = {
 
     update: (tableNo, customerId, orderId) => {
         return new Promise((resolve, reject) => {
-            connection.query('UPDATE `Table` SET `Customer ID` = ? AND `Order Id` = ? WHERE `Table No` = ?', 
-            [customerId, tableNo, orderId], (err, results) => {
-                if (err) reject(err);
-                resolve(results);
+            // Fixed SQL syntax - there was an AND instead of a comma
+            // Also changed the parameter order to match the query placeholders
+            connection.query('UPDATE `Table` SET `Customer ID` = ?, `Order Id` = ? WHERE `Table No` = ?', 
+            [customerId, orderId, tableNo], (err, results) => {
+                if (err) {
+                    console.error('SQL Error updating table:', err);
+                    reject(err);
+                } else {
+                    console.log('Table updated successfully:', results);
+                    resolve(results);
+                }
             });
         });
     },

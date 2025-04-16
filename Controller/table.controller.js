@@ -47,11 +47,31 @@ const TableController = {
     updateTable: async (req, res) => {
         try {
             const { tableNo } = req.params;
-            const { customerId } = req.body;
-            const { orderId } = req.body;
-            await TableService.updateTable(tableNo, customerId, orderId);
-            res.json({ message: "Table updated successfully" });
+            // Log the request body to debug
+            console.log('Update table request for table', tableNo, 'with body:', req.body);
+            
+            // Extract the customer ID using the exact field name from database
+            const customerId = req.body["Customer ID"];
+            const orderId = req.body["Order Id"];
+            
+            console.log('Extracted values:', { tableNo, customerId, orderId });
+            
+            // If either value is undefined, use null instead
+            const customerIdValue = customerId !== undefined ? customerId : null;
+            const orderIdValue = orderId !== undefined ? orderId : null;
+            
+            // Call the service layer
+            await TableService.updateTable(tableNo, customerIdValue, orderIdValue);
+            
+            // Return success response
+            res.json({ 
+                message: "Table updated successfully", 
+                tableNo,
+                customerIdUpdated: customerIdValue !== null,
+                orderIdUpdated: orderIdValue !== null
+            });
         } catch (error) {
+            console.error('Error updating table:', error);
             res.status(500).json({ message: error.message });
         }
     },
