@@ -2,12 +2,41 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
 
 // Load environment variables
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Create HTTP server
+const httpServer = createServer(app);
+
+// Configure Socket.IO with CORS
+const io = new Server(httpServer, {
+  cors: {
+    origin: [
+      'http://localhost:3000',
+      'https://restro-site-lac.vercel.app'
+    ],
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true
+  }
+});
+
+// Socket.IO event handlers
+io.on('connection', (socket) => {
+  console.log('New client connected:', socket.id);
+  
+  socket.on('disconnect', () => {
+    console.log('Client disconnected:', socket.id);
+  });
+});
+
+// Export io to be used in other files
+export { io };
 
 // Configure CORS to allow credentials with specific origins
 const corsOptions = {
@@ -62,6 +91,7 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: 'Something went wrong!' });
 });
 
-app.listen(PORT, () => {
+// Start the server using httpServer instead of app
+httpServer.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

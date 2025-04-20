@@ -1,5 +1,6 @@
 import connection from '../Connection/Connection.js';
-import TableRepository from './table.repository.js'; // Update this path according to your project structure
+import TableRepository from './table.repository.js';
+import { io } from '../server.js'; // Import io from server.js
 
 class OrderRepository {
     async getNextOrderId() {
@@ -74,6 +75,12 @@ class OrderRepository {
             }
         }
         
+        // Get the complete order with all fields for emitting
+        const newOrder = await this.getOrderById(newOrderId);
+        
+        // Emit 'order_created' event with the new order
+        io.emit('order_created', newOrder);
+        
         return { ...orderData, 'Order Id': newOrderId };
     }
 
@@ -95,13 +102,49 @@ class OrderRepository {
         
         const query = 'UPDATE `Order` SET ? WHERE `Order Id` = ?';
         await connection.promise().query(query, [processedData, orderId]);
-        return this.getOrderById(orderId);
+        
+        // Get updated order
+        const updatedOrder = await this.getOrderById(orderId);
+        
+        // Determine what type of update occurred to emit the appropriate event
+        if (orderData['Serving Status'] !== undefined) {
+            io.emit('order_status_updated', {
+                orderId,
+                status: 'serving',
+                value: orderData['Serving Status']
+            });
+        }
+        
+        if (orderData['Payment Status'] !== undefined) {
+            io.emit('order_status_updated', {
+                orderId,
+                status: 'payment',
+                value: orderData['Payment Status']
+            });
+        }
+        
+        // If dishes were updated, emit a specific event
+        if (orderData.Dishes) {
+            io.emit('order_dishes_updated', updatedOrder);
+        }
+        
+        // Always emit a general update event
+        io.emit('order_updated', updatedOrder);
+        
+        return updatedOrder;
     }
 
     async deleteOrder(orderId) {
         const query = 'DELETE FROM `Order` WHERE `Order Id` = ?';
         const [result] = await connection.promise().query(query, [orderId]);
-        return result.affectedRows > 0;
+        
+        if (result.affectedRows > 0) {
+            // Emit order deleted event
+            io.emit('order_deleted', orderId);
+            return true;
+        }
+        
+        return false;
     }
 }
 
