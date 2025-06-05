@@ -75,6 +75,8 @@ import ChefRouter from './Router/Chef.router.js';
 import RobotRouter from './Router/Robot.router.js';
 import TableRouter from './Router/table.router.js'
 import AdminRouter from './Router/admin.router.js'
+import orderReportRouter from './Router/orderReportRoutes.js'
+import feedbackRouter from './Router/feedbackRoutes.js'
 
 // Apply routes
 app.use('/Dish', DishRouter);
@@ -84,6 +86,8 @@ app.use('/Chef', ChefRouter);
 app.use('/Robot', RobotRouter);
 app.use('/Table', TableRouter);
 app.use('/Admin', AdminRouter);
+app.use('/orderReport', orderReportRouter);
+app.use('/feedback', feedbackRouter);
 
 // Global error handler
 app.use((err, req, res, next) => {

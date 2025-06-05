@@ -134,3 +134,10 @@ CREATE TABLE `Admin` (
     `Role` VARCHAR(255),
     `Images` JSON
 );
+
+CREATE TABLE `Feedback` (
+    `Feedback Id` VARCHAR(255) PRIMARY KEY,
+    `Feedback` VARCHAR(255),
+    `Order Id` VARCHAR(255),
+    `Customer Id` VARCHAR(255)
+);
