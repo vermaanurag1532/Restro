@@ -1,28 +1,28 @@
 import TableRepository from '../Repository/table.repository.js';
 
 const TableService = {
-    getAllTables: async () => {
-        return await TableRepository.getAll();
+    getAllTables: async (restaurantId) => {
+        return await TableRepository.getAll(restaurantId);
     },
 
-    getTableByNumber: async (tableNo) => {
-        return await TableRepository.getByTableNumber(tableNo);
+    getTableByNumber: async (restaurantId, tableNo) => {
+        return await TableRepository.getByTableNumber(restaurantId, tableNo);
     },
 
-    getTableByCustomerId: async (customerId) => {
-        return await TableRepository.getByCustomerId(customerId);
+    getTableByCustomerId: async (restaurantId, customerId) => {
+        return await TableRepository.getByCustomerId(restaurantId, customerId);
     },
 
-    createTable: async (tableNo, customerId, orderId) => {
-        return await TableRepository.create(tableNo, customerId, orderId);
+    createTable: async (restaurantId, tableNo, customerId, orderId) => {
+        return await TableRepository.create(restaurantId, tableNo, customerId, orderId);
     },
 
-    updateTable: async (tableNo, customerId , orderId) => {
-        return await TableRepository.update(tableNo, customerId, orderId);
+    updateTable: async (restaurantId, tableNo, customerId, orderId) => {
+        return await TableRepository.update(restaurantId, tableNo, customerId, orderId);
     },
 
-    deleteTable: async (tableNo) => {
-        return await TableRepository.delete(tableNo);
+    deleteTable: async (restaurantId, tableNo) => {
+        return await TableRepository.delete(restaurantId, tableNo);
     }
 };
 

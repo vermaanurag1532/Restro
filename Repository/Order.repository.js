@@ -1,6 +1,6 @@
 import connection from '../Connection/Connection.js';
 import TableRepository from './table.repository.js';
-import { io } from '../server.js'; // Import io from server.js
+import { io } from '../server.js';
 
 class OrderRepository {
     async getNextOrderId() {
@@ -24,18 +24,18 @@ class OrderRepository {
         }
     }
 
-    async getAllOrders() {
-        const query = 'SELECT * FROM `Order`';
-        const [rows] = await connection.promise().query(query);
+    async getAllOrders(restaurantId) {
+        const query = 'SELECT * FROM `Order` WHERE `Restaurant Id` = ?';
+        const [rows] = await connection.promise().query(query, [restaurantId]);
         return rows.map(row => ({
             ...row,
             Dishes: this.safeJsonParse(row.Dishes)
         }));
     }
 
-    async getOrderById(orderId) {
-        const query = 'SELECT * FROM `Order` WHERE `Order Id` = ?';
-        const [rows] = await connection.promise().query(query, [orderId]);
+    async getOrderById(restaurantId, orderId) {
+        const query = 'SELECT * FROM `Order` WHERE `Order Id` = ? AND `Restaurant Id` = ?';
+        const [rows] = await connection.promise().query(query, [orderId, restaurantId]);
         if (rows.length === 0) return null;
         return {
             ...rows[0],
@@ -43,9 +43,9 @@ class OrderRepository {
         };
     }
 
-    async getOrdersByCustomerId(customerId) {
-        const query = 'SELECT * FROM `Order` WHERE `Customer Id` = ?';
-        const [rows] = await connection.promise().query(query, [customerId]);
+    async getOrdersByCustomerId(restaurantId, customerId) {
+        const query = 'SELECT * FROM `Order` WHERE `Customer Id` = ? AND `Restaurant Id` = ?';
+        const [rows] = await connection.promise().query(query, [customerId, restaurantId]);
         return rows.map(row => ({
             ...row,
             Dishes: this.safeJsonParse(row.Dishes)
@@ -60,53 +60,40 @@ class OrderRepository {
             Dishes: JSON.stringify(orderData.Dishes || [])
         };
         
-        // Add the order
         const query = 'INSERT INTO `Order` SET ?';
         const [result] = await connection.promise().query(query, [processedData]);
         
-        // Update the table with this order ID
         if (orderData['Customer Id']) {
-            const tables = await TableRepository.getByCustomerId(orderData['Customer Id']);
-            
-            // If customer has a table assigned, update it with the new order ID
+            const tables = await TableRepository.getByCustomerId(orderData['Restaurant Id'] ,orderData['Customer Id']);
             if (tables && tables.length > 0) {
-                const table = tables[0]; // Using the first table if there are multiple
-                await TableRepository.update(table['Table No'], orderData['Customer Id'], newOrderId);
+                const table = tables[0];
+                await TableRepository.update(orderData['Restaurant Id'] ,table['Table No'], orderData['Customer Id'], newOrderId);
             }
         }
         
-        // Get the complete order with all fields for emitting
-        const newOrder = await this.getOrderById(newOrderId);
-        
-        // Emit 'order_created' event with the new order
+        const newOrder = await this.getOrderById(orderData['Restaurant Id'], newOrderId);
         io.emit('order_created', newOrder);
         
         return { ...orderData, 'Order Id': newOrderId };
     }
 
-    async updateOrder(orderId, orderData) {
+    async updateOrder(restaurantId, orderId, orderData) {
         if (orderData['Order Id']) delete orderData['Order Id'];
-        
-        // Get existing order
-        const currentOrder = await this.getOrderById(orderId);
+
+        const currentOrder = await this.getOrderById(restaurantId, orderId);
         if (!currentOrder) return null;
-        
-        const processedData = { 
-            ...orderData,
-        };
-        
-        // Handle dishes update
+
+        const processedData = { ...orderData };
+
         if (orderData.Dishes) {
             processedData.Dishes = JSON.stringify(orderData.Dishes);
         }
-        
-        const query = 'UPDATE `Order` SET ? WHERE `Order Id` = ?';
-        await connection.promise().query(query, [processedData, orderId]);
-        
-        // Get updated order
-        const updatedOrder = await this.getOrderById(orderId);
-        
-        // Determine what type of update occurred to emit the appropriate event
+
+        const query = 'UPDATE `Order` SET ? WHERE `Order Id` = ? AND `Restaurant Id` = ?';
+        await connection.promise().query(query, [processedData, orderId, restaurantId]);
+
+        const updatedOrder = await this.getOrderById(restaurantId, orderId);
+
         if (orderData['Serving Status'] !== undefined) {
             io.emit('order_status_updated', {
                 orderId,
@@ -114,7 +101,7 @@ class OrderRepository {
                 value: orderData['Serving Status']
             });
         }
-        
+
         if (orderData['Payment Status'] !== undefined) {
             io.emit('order_status_updated', {
                 orderId,
@@ -122,28 +109,25 @@ class OrderRepository {
                 value: orderData['Payment Status']
             });
         }
-        
-        // If dishes were updated, emit a specific event
+
         if (orderData.Dishes) {
             io.emit('order_dishes_updated', updatedOrder);
         }
-        
-        // Always emit a general update event
+
         io.emit('order_updated', updatedOrder);
-        
+
         return updatedOrder;
     }
 
-    async deleteOrder(orderId) {
-        const query = 'DELETE FROM `Order` WHERE `Order Id` = ?';
-        const [result] = await connection.promise().query(query, [orderId]);
-        
+    async deleteOrder(restaurantId, orderId) {
+        const query = 'DELETE FROM `Order` WHERE `Order Id` = ? AND `Restaurant Id` = ?';
+        const [result] = await connection.promise().query(query, [orderId, restaurantId]);
+
         if (result.affectedRows > 0) {
-            // Emit order deleted event
             io.emit('order_deleted', orderId);
             return true;
         }
-        
+
         return false;
     }
 }

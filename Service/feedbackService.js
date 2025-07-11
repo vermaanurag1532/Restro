@@ -1,196 +1,71 @@
-// services/feedbackService.js
 import feedbackRepository from '../Repository/feedbackRepository.js';
 
 class FeedbackService {
-    async getAllFeedback() {
+    async getAllFeedback(restaurantId) {
         try {
-            return await feedbackRepository.getAll();
+            return await feedbackRepository.getAll(restaurantId);
         } catch (error) {
-            throw {
-                success: false,
-                message: 'Error retrieving feedback',
-                error: error.message
-            };
+            throw { success: false, message: 'Error retrieving feedback', error: error.message };
         }
     }
 
-    async getFeedbackById(feedbackId) {
+    async getFeedbackById(feedbackId, restaurantId) {
         try {
-            if (!feedbackId) {
-                throw new Error('Feedback ID is required');
-            }
+            const feedback = await feedbackRepository.getById(feedbackId, restaurantId);
+            if (!feedback) throw new Error('Feedback not found');
 
-            const feedback = await feedbackRepository.getById(feedbackId);
-            
-            if (!feedback) {
-                throw new Error('Feedback not found');
-            }
-
-            return {
-                success: true,
-                data: feedback,
-                message: 'Feedback retrieved successfully'
-            };
+            return { success: true, data: feedback, message: 'Feedback retrieved successfully' };
         } catch (error) {
-            throw {
-                success: false,
-                message: error.message || 'Error retrieving feedback',
-                error: error.message
-            };
+            throw { success: false, message: error.message, error: error.message };
         }
     }
 
-    async createFeedback(feedbackData) {
-        try {
-            const { feedback, orderId, customerId } = feedbackData;
+    async createFeedback(restaurantId, feedbackData) {
+        const { feedback, orderId, customerId } = feedbackData;
+        if (!feedback || !orderId || !customerId) throw new Error('Missing required fields');
 
-            // Validation
-            if (!feedback) {
-                throw new Error('Feedback content is required');
-            }
-            if (!orderId) {
-                throw new Error('Order ID is required');
-            }
-            if (!customerId) {
-                throw new Error('Customer ID is required');
-            }
+        const feedbackId = await feedbackRepository.getNextFeedbackId();
+        const newFeedback = await feedbackRepository.create({
+            restaurantId,
+            feedbackId,
+            feedback,
+            orderId,
+            customerId
+        });
 
-            // Generate next feedback ID (Fb-1, Fb-2, etc.)
-            const feedbackId = await feedbackRepository.getNextFeedbackId();
-
-            const newFeedback = await feedbackRepository.create({
-                feedbackId,
-                feedback,
-                orderId,
-                customerId
-            });
-
-            return {
-                success: true,
-                data: newFeedback,
-                message: 'Feedback created successfully'
-            };
-        } catch (error) {
-            throw {
-                success: false,
-                message: error.message || 'Error creating feedback',
-                error: error.message
-            };
-        }
+        return { success: true, data: newFeedback, message: 'Feedback created successfully' };
     }
 
-    async updateFeedback(feedbackId, feedbackData) {
-        try {
-            if (!feedbackId) {
-                throw new Error('Feedback ID is required');
-            }
+    async updateFeedback(feedbackId, feedbackData, restaurantId) {
+        const existingFeedback = await feedbackRepository.getById(feedbackId, restaurantId);
+        if (!existingFeedback) throw new Error('Feedback not found');
 
-            const { feedback, orderId, customerId } = feedbackData;
+        const updateData = {
+            feedback: feedbackData.feedback || existingFeedback.Feedback,
+            orderId: feedbackData.orderId || existingFeedback['Order Id'],
+            customerId: feedbackData.customerId || existingFeedback['Customer Id']
+        };
 
-            // Validation
-            if (!feedback && !orderId && !customerId) {
-                throw new Error('At least one field is required for update');
-            }
-
-            // Check if feedback exists
-            const existingFeedback = await feedbackRepository.getById(feedbackId);
-            if (!existingFeedback) {
-                throw new Error('Feedback not found');
-            }
-
-            // Prepare update data with existing values as fallback
-            const updateData = {
-                feedback: feedback || existingFeedback.Feedback,
-                orderId: orderId || existingFeedback['Order Id'],
-                customerId: customerId || existingFeedback['Customer Id']
-            };
-
-            const updatedFeedback = await feedbackRepository.update(feedbackId, updateData);
-
-            return {
-                success: true,
-                data: updatedFeedback,
-                message: 'Feedback updated successfully'
-            };
-        } catch (error) {
-            throw {
-                success: false,
-                message: error.message || 'Error updating feedback',
-                error: error.message
-            };
-        }
+        const updatedFeedback = await feedbackRepository.update(feedbackId, updateData, restaurantId);
+        return { success: true, data: updatedFeedback, message: 'Feedback updated successfully' };
     }
 
-    async deleteFeedback(feedbackId) {
-        try {
-            if (!feedbackId) {
-                throw new Error('Feedback ID is required');
-            }
+    async deleteFeedback(feedbackId, restaurantId) {
+        const existingFeedback = await feedbackRepository.getById(feedbackId, restaurantId);
+        if (!existingFeedback) throw new Error('Feedback not found');
 
-            // Check if feedback exists
-            const existingFeedback = await feedbackRepository.getById(feedbackId);
-            if (!existingFeedback) {
-                throw new Error('Feedback not found');
-            }
-
-            const result = await feedbackRepository.delete(feedbackId);
-
-            return {
-                success: true,
-                data: result,
-                message: 'Feedback deleted successfully'
-            };
-        } catch (error) {
-            throw {
-                success: false,
-                message: error.message || 'Error deleting feedback',
-                error: error.message
-            };
-        }
+        const result = await feedbackRepository.delete(feedbackId, restaurantId);
+        return { success: true, data: result, message: 'Feedback deleted successfully' };
     }
 
-    async getFeedbackByOrderId(orderId) {
-        try {
-            if (!orderId) {
-                throw new Error('Order ID is required');
-            }
-
-            const feedback = await feedbackRepository.getByOrderId(orderId);
-
-            return {
-                success: true,
-                data: feedback,
-                message: 'Feedback retrieved successfully'
-            };
-        } catch (error) {
-            throw {
-                success: false,
-                message: error.message || 'Error retrieving feedback',
-                error: error.message
-            };
-        }
+    async getFeedbackByOrderId(orderId, restaurantId) {
+        const feedback = await feedbackRepository.getByOrderId(orderId, restaurantId);
+        return { success: true, data: feedback, message: 'Feedback retrieved successfully' };
     }
 
-    async getFeedbackByCustomerId(customerId) {
-        try {
-            if (!customerId) {
-                throw new Error('Customer ID is required');
-            }
-
-            const feedback = await feedbackRepository.getByCustomerId(customerId);
-
-            return {
-                success: true,
-                data: feedback,
-                message: 'Feedback retrieved successfully'
-            };
-        } catch (error) {
-            throw {
-                success: false,
-                message: error.message || 'Error retrieving feedback',
-                error: error.message
-            };
-        }
+    async getFeedbackByCustomerId(customerId, restaurantId) {
+        const feedback = await feedbackRepository.getByCustomerId(customerId, restaurantId);
+        return { success: true, data: feedback, message: 'Feedback retrieved successfully' };
     }
 }
 

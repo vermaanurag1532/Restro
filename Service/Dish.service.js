@@ -1,32 +1,32 @@
 import dishRepository from '../Repository/Dish.repository.js';
 
 class DishService {
-    async getAllDishes() {
-        return await dishRepository.getAllDishes();
+    async getAllDishes(restaurantId) {
+        return await dishRepository.getAllDishes(restaurantId);
     }
 
-    async getDishById(dishId) {
-        const dish = await dishRepository.getDishById(dishId);
+    async getDishById(restaurantId, dishId) {
+        const dish = await dishRepository.getDishById(restaurantId, dishId);
         if (!dish) {
             throw new Error('Dish not found');
         }
         return dish;
     }
 
-    async addDish(dishData) {
-        // Add any business logic/validation here
-        return await dishRepository.addDish(dishData);
+    async addDish(restaurantId, dishData) {
+        return await dishRepository.addDish(restaurantId, dishData);
     }
 
-    async updateDish(dishId, dishData) {
-        await this.getDishById(dishId); // Check if dish exists
-        return await dishRepository.updateDish(dishId, dishData);
+    async updateDish(restaurantId, dishId, dishData) {
+        await this.getDishById(restaurantId, dishId); // Ensure dish exists
+        return await dishRepository.updateDish(restaurantId, dishId, dishData);
     }
 
-    async deleteDish(dishId) {
-        await this.getDishById(dishId); // Check if dish exists
-        return await dishRepository.deleteDish(dishId);
+    async deleteDish(restaurantId, dishId) {
+        await this.getDishById(restaurantId, dishId); // Ensure dish exists
+        return await dishRepository.deleteDish(restaurantId, dishId);
     }
 }
+
 
 export default new DishService();

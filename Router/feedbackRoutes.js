@@ -5,12 +5,13 @@ import feedbackController from '../Controller/feedbackController.js';
 const feedbackRouter = express.Router();
 
 
-feedbackRouter.get('/', feedbackController.getAllFeedback);
-feedbackRouter.get('/:id', feedbackController.getFeedbackById);
-feedbackRouter.post('/', feedbackController.createFeedback);
-feedbackRouter.put('/:id', feedbackController.updateFeedback);
-feedbackRouter.delete('/:id', feedbackController.deleteFeedback);
-feedbackRouter.get('/order/:orderId', feedbackController.getFeedbackByOrderId);
-feedbackRouter.get('/customer/:customerId', feedbackController.getFeedbackByCustomerId);
+feedbackRouter.get('/:restaurantId', feedbackController.getAllFeedback);
+feedbackRouter.get('/:restaurantId/:id', feedbackController.getFeedbackById);
+feedbackRouter.post('/:restaurantId', feedbackController.createFeedback);
+feedbackRouter.put('/:restaurantId/:id', feedbackController.updateFeedback);
+feedbackRouter.delete('/:restaurantId/:id', feedbackController.deleteFeedback);
+feedbackRouter.get('/:restaurantId/order/:orderId', feedbackController.getFeedbackByOrderId);
+feedbackRouter.get('/:restaurantId/customer/:customerId', feedbackController.getFeedbackByCustomerId);
+
 
 export default feedbackRouter;

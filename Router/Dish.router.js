@@ -11,10 +11,10 @@ DishRouter.post('/upload', upload.single('image'), S3ImageController.uploadImage
 DishRouter.get('/image-url/:fileName', S3ImageController.getImageUrl);
 DishRouter.get('/upload', S3ImageController.getAllImages);
 
-DishRouter.get('/', dishController.getAllDishes);
-DishRouter.get('/:id', dishController.getDishById);
-DishRouter.post('/', dishController.addDish);
-DishRouter.put('/:id', dishController.updateDish);
-DishRouter.delete('/:id', dishController.deleteDish);
+DishRouter.get('/:restaurantId', dishController.getAllDishes);
+DishRouter.get('/:restaurantId/:id', dishController.getDishById);
+DishRouter.post('/:restaurantId', dishController.addDish);
+DishRouter.put('/:restaurantId/:id', dishController.updateDish);
+DishRouter.delete('/:restaurantId/:id', dishController.deleteDish);
 
 export default DishRouter;

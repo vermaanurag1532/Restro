@@ -3,7 +3,8 @@ import TableService from '../Service/table.service.js';
 const TableController = {
     getAllTables: async (req, res) => {
         try {
-            const tables = await TableService.getAllTables();
+            const { restaurantId } = req.params;
+            const tables = await TableService.getAllTables(restaurantId);
             res.json(tables);
         } catch (error) {
             res.status(500).json({ message: error.message });
@@ -12,8 +13,8 @@ const TableController = {
 
     getTableByNumber: async (req, res) => {
         try {
-            const { tableNo } = req.params;
-            const table = await TableService.getTableByNumber(tableNo);
+            const { restaurantId, tableNo } = req.params;
+            const table = await TableService.getTableByNumber(restaurantId, tableNo);
             if (table) {
                 res.json(table);
             } else {
@@ -26,8 +27,8 @@ const TableController = {
 
     getTableByCustomerId: async (req, res) => {
         try {
-            const { customerId } = req.params;
-            const tables = await TableService.getTableByCustomerId(customerId);
+            const { restaurantId, customerId } = req.params;
+            const tables = await TableService.getTableByCustomerId(restaurantId, customerId);
             res.json(tables);
         } catch (error) {
             res.status(500).json({ message: error.message });
@@ -36,8 +37,9 @@ const TableController = {
 
     createTable: async (req, res) => {
         try {
+            const { restaurantId } = req.params;
             const { tableNo, customerId, orderId } = req.body;
-            await TableService.createTable(tableNo, customerId, orderId);
+            await TableService.createTable(restaurantId, tableNo, customerId, orderId);
             res.status(201).json({ message: "Table created successfully" });
         } catch (error) {
             res.status(500).json({ message: error.message });
@@ -46,40 +48,25 @@ const TableController = {
 
     updateTable: async (req, res) => {
         try {
-            const { tableNo } = req.params;
-            // Log the request body to debug
-            console.log('Update table request for table', tableNo, 'with body:', req.body);
-            
-            // Extract the customer ID using the exact field name from database
+            const { restaurantId, tableNo } = req.params;
             const customerId = req.body["Customer ID"];
             const orderId = req.body["Order Id"];
-            
-            console.log('Extracted values:', { tableNo, customerId, orderId });
-            
-            // If either value is undefined, use null instead
-            const customerIdValue = customerId !== undefined ? customerId : null;
-            const orderIdValue = orderId !== undefined ? orderId : null;
-            
-            // Call the service layer
-            await TableService.updateTable(tableNo, customerIdValue, orderIdValue);
-            
-            // Return success response
-            res.json({ 
-                message: "Table updated successfully", 
+            await TableService.updateTable(restaurantId, tableNo, customerId ?? null, orderId ?? null);
+            res.json({
+                message: "Table updated successfully",
                 tableNo,
-                customerIdUpdated: customerIdValue !== null,
-                orderIdUpdated: orderIdValue !== null
+                customerIdUpdated: customerId !== undefined,
+                orderIdUpdated: orderId !== undefined
             });
         } catch (error) {
-            console.error('Error updating table:', error);
             res.status(500).json({ message: error.message });
         }
     },
 
     deleteTable: async (req, res) => {
         try {
-            const { tableNo } = req.params;
-            await TableService.deleteTable(tableNo);
+            const { restaurantId, tableNo } = req.params;
+            await TableService.deleteTable(restaurantId, tableNo);
             res.json({ message: "Table deleted successfully" });
         } catch (error) {
             res.status(500).json({ message: error.message });

@@ -9,71 +9,72 @@ class ChefRepository {
         return `CHEF-${maxId + 1}`;
     }
 
-    async getAllChefs() {
-        const query = 'SELECT `Chef Id`, Name, Email FROM Chef';
-        const [rows] = await connection.promise().query(query);
+    async getAllChefs(restaurantId) {
+        const query = 'SELECT `Chef Id`, Name, Email FROM Chef WHERE `Restaurant Id` = ?';
+        const [rows] = await connection.promise().query(query, [restaurantId]);
         return rows;
     }
 
-    async getChefById(chefId) {
-        const query = 'SELECT `Chef Id`, Name, Email FROM Chef WHERE `Chef Id` = ?';
-        const [rows] = await connection.promise().query(query, [chefId]);
+    async getChefById(restaurantId, chefId) {
+        const query = 'SELECT `Chef Id`, Name, Email FROM Chef WHERE `Restaurant Id` = ? AND `Chef Id` = ?';
+        const [rows] = await connection.promise().query(query, [restaurantId, chefId]);
         return rows[0] || null;
     }
 
-    async getChefByEmail(email) {
-        const query = 'SELECT * FROM Chef WHERE Email = ?';
-        const [rows] = await connection.promise().query(query, [email]);
+    async getChefByEmail(restaurantId, email) {
+        const query = 'SELECT * FROM Chef WHERE `Restaurant Id` = ? AND Email = ?';
+        const [rows] = await connection.promise().query(query, [restaurantId, email]);
         return rows[0] || null;
     }
 
-    async addChef(chefData) {
+    async addChef(restaurantId, chefData) {
         const newChefId = await this.getNextChefId();
         const hashedPassword = await bcrypt.hash(chefData.Password, 10);
-        
+
         const query = 'INSERT INTO Chef SET ?';
-        const [result] = await connection.promise().query(query, [{
+        await connection.promise().query(query, [{
             ...chefData,
+            'Restaurant Id': restaurantId,
             'Chef Id': newChefId,
             Password: hashedPassword
         }]);
-        
-        return { 
-            'Chef Id': newChefId, 
-            Name: chefData.Name, 
-            Email: chefData.Email 
+
+        return {
+            'Chef Id': newChefId,
+            Name: chefData.Name,
+            Email: chefData.Email
         };
     }
 
-    async updateChef(chefId, chefData) {
+    async updateChef(restaurantId, chefId, chefData) {
         const updateData = { ...chefData };
-        
+
         if (chefData.Password) {
             updateData.Password = await bcrypt.hash(chefData.Password, 10);
         }
-        
-        const query = 'UPDATE Chef SET ? WHERE `Chef Id` = ?';
-        await connection.promise().query(query, [updateData, chefId]);
-        return this.getChefById(chefId);
+
+        const query = 'UPDATE Chef SET ? WHERE `Restaurant Id` = ? AND `Chef Id` = ?';
+        await connection.promise().query(query, [updateData, restaurantId, chefId]);
+        return this.getChefById(restaurantId, chefId);
     }
 
-    async deleteChef(chefId) {
-        const query = 'DELETE FROM Chef WHERE `Chef Id` = ?';
-        const [result] = await connection.promise().query(query, [chefId]);
+    async deleteChef(restaurantId, chefId) {
+        const query = 'DELETE FROM Chef WHERE `Restaurant Id` = ? AND `Chef Id` = ?';
+        const [result] = await connection.promise().query(query, [restaurantId, chefId]);
         return result.affectedRows > 0;
     }
 
-    async verifyChef(email, password) {
-        const chef = await this.getChefByEmail(email);
+    async verifyChef(restaurantId, email, password) {
+        const chef = await this.getChefByEmail(restaurantId, email);
         if (!chef) return null;
-        
+
         const isValid = await bcrypt.compare(password, chef.Password);
         if (!isValid) return null;
-        
-        return { 
-            'Chef Id': chef['Chef Id'], 
-            Name: chef.Name, 
-            Email: chef.Email 
+
+        return {
+            'Chef Id': chef['Chef Id'],
+            Name: chef.Name,
+            Email: chef.Email
         };
     }
 }

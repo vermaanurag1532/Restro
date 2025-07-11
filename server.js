@@ -203,6 +203,8 @@ import AdminRouter from './Router/admin.router.js';
 import orderReportRouter from './Router/orderReportRoutes.js';
 import feedbackRouter from './Router/feedbackRoutes.js';
 import businessInsightsRoutes from './Router/businessInsightsRoutes.js'
+import RobotCallRouter from './Router/robotCall.router.js'
+import RestaurantRouter from './Router/restaurant.routes.js'
 
 // Apply existing routes
 app.use('/Dish', DishRouter);
@@ -214,6 +216,8 @@ app.use('/Table', TableRouter);
 app.use('/Admin', AdminRouter);
 app.use('/orderReport', orderReportRouter);
 app.use('/feedback', feedbackRouter);
+app.use('/api/robot-call', RobotCallRouter);
+app.use('/Restaurant', RestaurantRouter);
 
 // Apply Business Insights routes
 app.use('/api/insights', businessInsightsRoutes);

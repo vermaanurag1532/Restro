@@ -1,4 +1,5 @@
 CREATE TABLE `Dish` (
+    `Restaurant Id` VARCHAR(255),
     `DishId` VARCHAR(255) PRIMARY KEY,
     `Name` VARCHAR(255),
     `Price` INT,
@@ -26,6 +27,7 @@ http://localhost:3000/Dish
 }
 
 CREATE TABLE `Customer` (
+    `Restaurant Id` VARCHAR(255),
     `Customer Id` VARCHAR(255) PRIMARY KEY,
     `Customer Name` VARCHAR(255),
     `Contact Number` INT,
@@ -51,6 +53,7 @@ login
 }
 
 CREATE TABLE `Order` (
+    `Restaurant Id` VARCHAR(255),
     `Order Id` VARCHAR(255) PRIMARY KEY,
     `Customer Id` VARCHAR(255),
     `Table No` VARCHAR(255),
@@ -70,14 +73,15 @@ http://localhost:3000/Order
   "Time": "19:30",
   "Date": "2023-06-15",
   "Dishes": [
-    {"Dish Id": "DISH-1", "Quantity": 2},
-    {"Dish Id": "DISH-3", "Quantity": 1}
+    {"Dish Id": "DISH-1", "Quantity": 2,"Name": "samosa", "Price": "50"},
+    {"Dish Id": "DISH-3", "Quantity": 1,"Name": "samosa", "Price": "50"}
   ],
   "Payment Status": false,
   "Serving Status": false
 }
 
 CREATE TABLE `Chef` (
+    `Restaurant Id` VARCHAR(255),
     `Chef Id` VARCHAR(255) PRIMARY KEY,
     `Name` VARCHAR(255),
     `Email` VARCHAR(255),
@@ -98,6 +102,7 @@ http://localhost:3000/Chef/login
 }
 
 CREATE TABLE `Robot` (
+    `Restaurant Id` VARCHAR(255),
     `Robot Id` VARCHAR(255) PRIMARY KEY,
     `Order Id` VARCHAR(255),
     `Customer Id` VARCHAR(255),
@@ -113,6 +118,7 @@ http://localhost:3000/Robot
 
 
 CREATE TABLE `Table` (
+  `Restaurant Id` VARCHAR(255),
   `Table No` INT,
   `Customer ID` VARCHAR(255),
   `Order Id` VARCHAR(255)
@@ -126,6 +132,7 @@ http://localhost:3000/Table/
 
 
 CREATE TABLE `Admin` (
+    `Restaurant Id` VARCHAR(255),
     `Admin Id` VARCHAR(255) PRIMARY KEY,
     `Admin Name` VARCHAR(255),
     `Contact Number` INT,
@@ -136,8 +143,28 @@ CREATE TABLE `Admin` (
 );
 
 CREATE TABLE `Feedback` (
+    `Restaurant Id` VARCHAR(255),
     `Feedback Id` VARCHAR(255) PRIMARY KEY,
     `Feedback` VARCHAR(255),
     `Order Id` VARCHAR(255),
     `Customer Id` VARCHAR(255)
+);
+
+CREATE TABLE `Robot_Call_Request` (
+    `Restaurant Id` VARCHAR(255),
+    `Id` INT AUTO_INCREMENT PRIMARY KEY,
+    `Table_No` VARCHAR(255) NOT NULL,
+    `Status` ENUM('pending', 'dispatched', 'arrived', 'completed', 'failed') DEFAULT 'pending',
+    `Created_At` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `Updated_At` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX `idx_table_no` (`Table_No`),
+    INDEX `idx_status` (`Status`),
+    INDEX `idx_created_at` (`Created_At`)
+);
+
+CREATE TABLE `Restaurant` (
+    `Restaurant Id` VARCHAR(255),
+    `Name Id` VARCHAR(255),
+    `Location Id` VARCHAR(255),
+    `Restaurant logo` JSON
 );

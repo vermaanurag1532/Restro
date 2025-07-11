@@ -30,97 +30,71 @@ class DishRepository {
         }
     }
 
-    async getAllDishes() {
-        try {
-            const query = 'SELECT * FROM Dish';
-            const [rows] = await connection.promise().query(query);
-            
-            // Add debug logging
-            console.log('Raw DB rows:', rows.map(r => ({
-                id: r['DishId'],
-                imagesRaw: r.Images,
-                typeRaw: r['Type of Dish'],
-                genreRaw: r['Genre of Taste']
-            })));
-            
-            return rows.map(row => ({
-                ...row,
-                Images: this.safeJsonParse(row.Images, 'Images'),
-                'Type of Dish': this.safeJsonParse(row['Type of Dish'], 'Type of Dish'),
-                'Genre of Taste': this.safeJsonParse(row['Genre of Taste'], 'Genre of Taste')
-            }));
-        } catch (error) {
-            console.error('Error in getAllDishes:', error);
-            throw error;
-        }
+    async getAllDishes(restaurantId) {
+        const query = 'SELECT * FROM Dish WHERE `Restaurant Id` = ?';
+        const [rows] = await connection.promise().query(query, [restaurantId]);
+        return rows.map(row => ({
+            ...row,
+            Images: this.safeJsonParse(row.Images),
+            'Type of Dish': this.safeJsonParse(row['Type of Dish']),
+            'Genre of Taste': this.safeJsonParse(row['Genre of Taste'])
+        }));
     }
     
-    async getDishById(dishId) {
-        try {
-            const query = 'SELECT * FROM Dish WHERE `DishId` = ?';
-            const [rows] = await connection.promise().query(query, [dishId]);
-            if (rows.length === 0) return null;
-            
-            const row = rows[0];
-            console.log('Raw DB row for', dishId, ':', {
-                imagesRaw: row.Images,
-                typeRaw: row['Type of Dish'],
-                genreRaw: row['Genre of Taste']
-            });
-            
-            return {
-                ...row,
-                Images: this.safeJsonParse(row.Images, 'Images'),
-                'Type of Dish': this.safeJsonParse(row['Type of Dish'], 'Type of Dish'),
-                'Genre of Taste': this.safeJsonParse(row['Genre of Taste'], 'Genre of Taste')
-            };
-        } catch (error) {
-            console.error('Error in getDishById:', error);
-            throw error;
-        }
+    
+    async getDishById(restaurantId, dishId) {
+        const query = 'SELECT * FROM Dish WHERE `DishId` = ? AND `Restaurant Id` = ?';
+        const [rows] = await connection.promise().query(query, [dishId, restaurantId]);
+        if (rows.length === 0) return null;
+    
+        const row = rows[0];
+        return {
+            ...row,
+            Images: this.safeJsonParse(row.Images),
+            'Type of Dish': this.safeJsonParse(row['Type of Dish']),
+            'Genre of Taste': this.safeJsonParse(row['Genre of Taste'])
+        };
     }
+    
 
 
-    async addDish(dishData) {
-        // Generate new dish ID
+    async addDish(restaurantId, dishData) {
         const newDishId = await this.getNextDishId();
-        
-        // Stringify JSON fields
+    
         const processedData = {
             ...dishData,
-            'DishId': newDishId,
+            DishId: newDishId,
+            'Restaurant Id': restaurantId,
             Images: JSON.stringify(dishData.Images),
             'Type of Dish': JSON.stringify(dishData['Type of Dish']),
             'Genre of Taste': JSON.stringify(dishData['Genre of Taste'])
         };
-        
+    
         const query = 'INSERT INTO Dish SET ?';
-        const [result] = await connection.promise().query(query, [processedData]);
-        return { ...dishData, 'DishId': newDishId };
+        await connection.promise().query(query, [processedData]);
+        return { ...dishData, DishId: newDishId };
     }
+    
 
-    async updateDish(dishId, dishData) {
-        // Don't allow updating the Dish Id
-        if (dishData['DishId']) {
-            delete dishData['DishId'];
-        }
-        
-        // Stringify JSON fields if they exist in the update data
+    async updateDish(restaurantId, dishId, dishData) {
         const processedData = { ...dishData };
         if (dishData.Images) processedData.Images = JSON.stringify(dishData.Images);
         if (dishData['Type of Dish']) processedData['Type of Dish'] = JSON.stringify(dishData['Type of Dish']);
         if (dishData['Genre of Taste']) processedData['Genre of Taste'] = JSON.stringify(dishData['Genre of Taste']);
-        
-        const query = 'UPDATE Dish SET ? WHERE `DishId` = ?';
-        await connection.promise().query(query, [processedData, dishId]);
-        return this.getDishById(dishId);
+    
+        const query = 'UPDATE Dish SET ? WHERE `DishId` = ? AND `Restaurant Id` = ?';
+        await connection.promise().query(query, [processedData, dishId, restaurantId]);
+    
+        return this.getDishById(restaurantId, dishId);
     }
+    
 
-    async deleteDish(dishId) {
-        const query = 'DELETE FROM Dish WHERE `DishId` = ?';
-        const [result] = await connection.promise().query(query, [dishId]);
+    async deleteDish(restaurantId, dishId) {
+        const query = 'DELETE FROM Dish WHERE `DishId` = ? AND `Restaurant Id` = ?';
+        const [result] = await connection.promise().query(query, [dishId, restaurantId]);
         return result.affectedRows > 0;
     }
+    
 }
 
 export default new DishRepository();

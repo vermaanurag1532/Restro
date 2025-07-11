@@ -1,66 +1,71 @@
 import connection from '../Connection/Connection.js';
 
 const TableRepository = {
-    getAll: () => {
+    getAll: (restaurantId) => {
         return new Promise((resolve, reject) => {
-            connection.query('SELECT * FROM `Table`', (err, results) => {
+            connection.query('SELECT * FROM `Table` WHERE `Restaurant Id` = ?', [restaurantId], (err, results) => {
                 if (err) reject(err);
                 resolve(results);
             });
         });
     },
 
-    getByTableNumber: (tableNo) => {
+    getByTableNumber: (restaurantId, tableNo) => {
         return new Promise((resolve, reject) => {
-            connection.query('SELECT * FROM `Table` WHERE `Table No` = ?', [tableNo], (err, results) => {
+            connection.query('SELECT * FROM `Table` WHERE `Restaurant Id` = ? AND `Table No` = ?', 
+            [restaurantId, tableNo], (err, results) => {
                 if (err) reject(err);
                 resolve(results[0]);
             });
         });
     },
 
-    getByCustomerId: (customerId) => {
+    getByCustomerId: (restaurantId, customerId) => {
         return new Promise((resolve, reject) => {
-            connection.query('SELECT * FROM `Table` WHERE `Customer ID` = ?', [customerId], (err, results) => {
+            connection.query('SELECT * FROM `Table` WHERE `Restaurant Id` = ? AND `Customer ID` = ?', 
+            [restaurantId, customerId], (err, results) => {
                 if (err) reject(err);
                 resolve(results);
             });
         });
     },
 
-    create: (tableNo, customerId, orderId) => {
+    create: (restaurantId, tableNo, customerId, orderId) => {
         return new Promise((resolve, reject) => {
-            connection.query('INSERT INTO `Table` (`Table No`, `Customer ID`, `Order Id`) VALUES (?, ?, ?)', 
-            [tableNo, customerId, orderId], (err, results) => {
-                if (err) reject(err);
-                resolve(results);
-            });
-        });
-    },
-
-    update: (tableNo, customerId, orderId) => {
-        return new Promise((resolve, reject) => {
-            // Fixed SQL syntax - there was an AND instead of a comma
-            // Also changed the parameter order to match the query placeholders
-            connection.query('UPDATE `Table` SET `Customer ID` = ?, `Order Id` = ? WHERE `Table No` = ?', 
-            [customerId, orderId, tableNo], (err, results) => {
-                if (err) {
-                    console.error('SQL Error updating table:', err);
-                    reject(err);
-                } else {
-                    console.log('Table updated successfully:', results);
+            connection.query(
+                'INSERT INTO `Table` (`Restaurant Id`, `Table No`, `Customer ID`, `Order Id`) VALUES (?, ?, ?, ?)', 
+                [restaurantId, tableNo, customerId, orderId], 
+                (err, results) => {
+                    if (err) reject(err);
                     resolve(results);
                 }
-            });
+            );
         });
     },
 
-    delete: (tableNo) => {
+    update: (restaurantId, tableNo, customerId, orderId) => {
         return new Promise((resolve, reject) => {
-            connection.query('DELETE FROM `Table` WHERE `Table No` = ?', [tableNo], (err, results) => {
-                if (err) reject(err);
-                resolve(results);
-            });
+            connection.query(
+                'UPDATE `Table` SET `Customer ID` = ?, `Order Id` = ? WHERE `Restaurant Id` = ? AND `Table No` = ?', 
+                [customerId, orderId, restaurantId, tableNo], 
+                (err, results) => {
+                    if (err) reject(err);
+                    resolve(results);
+                }
+            );
+        });
+    },
+
+    delete: (restaurantId, tableNo) => {
+        return new Promise((resolve, reject) => {
+            connection.query(
+                'DELETE FROM `Table` WHERE `Restaurant Id` = ? AND `Table No` = ?', 
+                [restaurantId, tableNo], 
+                (err, results) => {
+                    if (err) reject(err);
+                    resolve(results);
+                }
+            );
         });
     }
 };

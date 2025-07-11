@@ -1,23 +1,23 @@
 import AdminRepository from '../Repository/admin.repository.js';
 
 const AdminService = {
-  getAllAdmins: async () => {
-    return await AdminRepository.getAll();
+  getAdminsByRestaurant: async (restaurantId) => {
+    return await AdminRepository.getAllByRestaurant(restaurantId);
   },
-
-  getAllChefs: async () => {
-    return await AdminRepository.getAllChef();
+  
+  getChefsByRestaurant: async (restaurantId) => {
+    return await AdminRepository.getAllChefsByRestaurant(restaurantId);
   },
-
-  getAdminById: async (adminId) => {
-    return await AdminRepository.getById(adminId);
+  
+  getAdminById: async (restaurantId, adminId) => {
+    return await AdminRepository.getById(restaurantId, adminId);
   },
-
-  createAdmin: async (data) => {
+  
+  createAdmin: async (restaurantId, data) => {
     const role = data.Role;
-    const count = await AdminRepository.getCountByRole(role);
+    const count = await AdminRepository.getCountByRole(restaurantId, role);
     const adminId = `${role}-${count + 1}`;
-
+  
     const newAdmin = {
       'Admin Id': adminId,
       'Admin Name': data['Admin Name'],
@@ -25,31 +25,32 @@ const AdminService = {
       'Email': data.Email,
       'Password': data.Password,
       'Role': data.Role,
-      'Images': JSON.stringify(data.Images || [])
+      'Images': JSON.stringify(data.Images || []),
+      'Restaurant Id': restaurantId
     };
-
+  
     await AdminRepository.create(newAdmin);
     return adminId;
   },
-
-  updateAdmin: async (adminId, data) => {
+  
+  updateAdmin: async (restaurantId, adminId, data) => {
     if (data.Images) {
       data.Images = JSON.stringify(data.Images);
     }
-    return await AdminRepository.update(adminId, data);
+    return await AdminRepository.update(restaurantId, adminId, data);
   },
-
-  deleteAdmin: async (adminId) => {
-    return await AdminRepository.remove(adminId);
+  
+  deleteAdmin: async (restaurantId, adminId) => {
+    return await AdminRepository.remove(restaurantId, adminId);
   },
-
-  loginAdmin: async (email, password) => {
-    const admin = await AdminRepository.findByEmail(email);
+  
+  loginAdmin: async (restaurantId, email, password) => {
+    const admin = await AdminRepository.findByEmailAndRestaurant(restaurantId, email);
     if (!admin || admin.Password !== password) {
       return null;
     }
     return admin;
-  }
+  }  
 };
 
 export default AdminService;
