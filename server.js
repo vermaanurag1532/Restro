@@ -205,6 +205,7 @@ import feedbackRouter from './Router/feedbackRoutes.js';
 import businessInsightsRoutes from './Router/businessInsightsRoutes.js'
 import RobotCallRouter from './Router/robotCall.router.js'
 import RestaurantRouter from './Router/restaurant.routes.js'
+import AnkitLoginRouter from './Router/ankitLogin.router.js'
 
 // Apply existing routes
 app.use('/Dish', DishRouter);
@@ -218,6 +219,10 @@ app.use('/orderReport', orderReportRouter);
 app.use('/feedback', feedbackRouter);
 app.use('/api/robot-call', RobotCallRouter);
 app.use('/Restaurant', RestaurantRouter);
+
+app.use('/api/auth', AnkitLoginRouter);
+app.use('/api/user', AnkitLoginRouter);
+app.use('/api/app', AnkitLoginRouter);
 
 // Apply Business Insights routes
 app.use('/api/insights', businessInsightsRoutes);
