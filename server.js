@@ -206,6 +206,7 @@ import businessInsightsRoutes from './Router/businessInsightsRoutes.js'
 import RobotCallRouter from './Router/robotCall.router.js'
 import RestaurantRouter from './Router/restaurant.routes.js'
 import AnkitLoginRouter from './Router/ankitLogin.router.js'
+import CurrentAffairRouter from './Router/currentAffairs.router.js'
 
 // Apply existing routes
 app.use('/Dish', DishRouter);
@@ -223,6 +224,7 @@ app.use('/Restaurant', RestaurantRouter);
 app.use('/api/auth', AnkitLoginRouter);
 app.use('/api/user', AnkitLoginRouter);
 app.use('/api/app', AnkitLoginRouter);
+app.use('/CuurentAffair', CurrentAffairRouter);
 
 // Apply Business Insights routes
 app.use('/api/insights', businessInsightsRoutes);
