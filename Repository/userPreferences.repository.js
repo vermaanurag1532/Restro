@@ -5,6 +5,19 @@ import { promisify } from 'util';
 // Convert callback-based connection to promise-based
 const query = promisify(connection.query).bind(connection);
 
+// Safe JSON parse helper
+const safeJSONParse = (data, fallback) => {
+  try {
+    if (data === null || data === undefined || data === '') {
+      return fallback; // prevent JSON.parse("") crash
+    }
+    return JSON.parse(data);
+  } catch (err) {
+    console.error('JSON Parse Error:', err, 'for data:', data);
+    return fallback;
+  }
+};
+
 const userPreferencesRepository = {
   // Get user preferences
   async getUserPreferences(userId) {
@@ -34,8 +47,8 @@ const userPreferencesRepository = {
         haptic_feedback_enabled: Boolean(row.haptic_feedback_enabled),
         auto_save_interval: row.auto_save_interval,
         data_backup_enabled: Boolean(row.data_backup_enabled),
-        favorite_subjects: row.favorite_subjects ? JSON.parse(row.favorite_subjects) : [],
-        custom_settings: row.custom_settings ? JSON.parse(row.custom_settings) : {}
+        favorite_subjects: safeJSONParse(row.favorite_subjects, []),
+        custom_settings: safeJSONParse(row.custom_settings, {})
       };
     } catch (error) {
       console.error('Get User Preferences Error:', error);
@@ -69,13 +82,13 @@ const userPreferencesRepository = {
         preferencesData.language || 'en',
         preferencesData.notifications_enabled !== undefined ? preferencesData.notifications_enabled : true,
         preferencesData.reminder_frequency || 'daily',
-        preferencesData.study_reminder_time || '19:0',
+        preferencesData.study_reminder_time || '19:00',
         preferencesData.sound_enabled !== undefined ? preferencesData.sound_enabled : true,
         preferencesData.haptic_feedback_enabled !== undefined ? preferencesData.haptic_feedback_enabled : true,
         preferencesData.auto_save_interval || 5,
         preferencesData.data_backup_enabled !== undefined ? preferencesData.data_backup_enabled : true,
-        JSON.stringify(preferencesData.favorite_subjects || []),
-        JSON.stringify(preferencesData.custom_settings || {})
+        JSON.stringify(preferencesData.favorite_subjects || []),  // always safe JSON
+        JSON.stringify(preferencesData.custom_settings || {})     // always safe JSON
       ];
 
       await query(sql, values);
@@ -142,12 +155,12 @@ const userPreferencesRepository = {
 
       if (preferencesData.favorite_subjects !== undefined) {
         setParts.push('favorite_subjects = ?');
-        values.push(JSON.stringify(preferencesData.favorite_subjects));
+        values.push(JSON.stringify(preferencesData.favorite_subjects || []));
       }
 
       if (preferencesData.custom_settings !== undefined) {
         setParts.push('custom_settings = ?');
-        values.push(JSON.stringify(preferencesData.custom_settings));
+        values.push(JSON.stringify(preferencesData.custom_settings || {}));
       }
 
       if (setParts.length === 0) {
@@ -226,8 +239,8 @@ const userPreferencesRepository = {
         haptic_feedback_enabled: Boolean(row.haptic_feedback_enabled),
         auto_save_interval: row.auto_save_interval,
         data_backup_enabled: Boolean(row.data_backup_enabled),
-        favorite_subjects: row.favorite_subjects ? JSON.parse(row.favorite_subjects) : [],
-        custom_settings: row.custom_settings ? JSON.parse(row.custom_settings) : {},
+        favorite_subjects: safeJSONParse(row.favorite_subjects, []),
+        custom_settings: safeJSONParse(row.custom_settings, {}),
         created_at: row.created_at,
         updated_at: row.updated_at
       }));
