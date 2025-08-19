@@ -6,6 +6,27 @@ import { promisify } from 'util';
 const query = promisify(connection.query).bind(connection);
 
 const userStatsRepository = {
+  // Helper method to safely parse JSON
+  parseJsonSafely(jsonString, defaultValue = {}) {
+    try {
+      if (!jsonString) return defaultValue;
+      
+      // If it's already an object, return it
+      if (typeof jsonString === 'object') {
+        return jsonString;
+      }
+      
+      // If it's a string, try to parse it
+      if (typeof jsonString === 'string') {
+        return JSON.parse(jsonString);
+      }
+      
+      return defaultValue;
+    } catch (error) {
+      console.error('JSON parsing error:', error);
+      return defaultValue;
+    }
+  },
   // Get user statistics
   async getUserStats(userId) {
     try {
@@ -32,7 +53,7 @@ const userStatsRepository = {
         total_study_hours: row.total_study_hours,
         completed_flashcards: row.completed_flashcards,
         saved_notes: row.saved_notes,
-        subject_stats: row.subject_stats ? JSON.parse(row.subject_stats) : {},
+        subject_stats: this.parseJsonSafely(row.subject_stats, {}),
         last_activity: row.last_activity ? row.last_activity.toISOString() : new Date().toISOString()
       };
     } catch (error) {
@@ -224,7 +245,7 @@ const userStatsRepository = {
         total_study_hours: row.total_study_hours,
         completed_flashcards: row.completed_flashcards,
         saved_notes: row.saved_notes,
-        subject_stats: row.subject_stats ? JSON.parse(row.subject_stats) : {},
+        subject_stats: this.parseJsonSafely(row.subject_stats, {}),
         last_activity: row.last_activity ? row.last_activity.toISOString() : new Date().toISOString()
       };
     } catch (error) {
@@ -302,7 +323,7 @@ const userStatsRepository = {
         total_study_hours: row.total_study_hours,
         completed_flashcards: row.completed_flashcards,
         saved_notes: row.saved_notes,
-        subject_stats: row.subject_stats ? JSON.parse(row.subject_stats) : {},
+        subject_stats: this.parseJsonSafely(row.subject_stats, {}),
         last_activity: row.last_activity ? row.last_activity.toISOString() : null,
         created_at: row.created_at,
         updated_at: row.updated_at
