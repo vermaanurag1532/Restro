@@ -162,6 +162,46 @@ export class CurrentAffairsController {
       });
     }
   }
+  // Controllers/currentAffairs.controller.js - Add this method to the class
+
+/**
+ * Get all current affairs with pagination
+ */
+async getAllCurrentAffairs(req, res) {
+  try {
+    const { 
+      page = 1, 
+      limit = 50, 
+      category, 
+      sortBy = 'date', 
+      sortOrder = 'DESC' 
+    } = req.query;
+    
+    const result = await this.currentAffairsService.getAllCurrentAffairs(
+      page, 
+      limit, 
+      category, 
+      sortBy, 
+      sortOrder
+    );
+    
+    res.status(200).json({
+      success: true,
+      message: 'Current affairs retrieved successfully',
+      data: result.currentAffairs,
+      pagination: result.pagination,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error in getAllCurrentAffairs:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve current affairs',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+}
 
   /**
    * Refresh current affairs data

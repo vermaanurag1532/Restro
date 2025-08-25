@@ -438,6 +438,74 @@ export class CurrentAffairsRepository {
     }
   }
 
+  // Repository/currentAffairs.repository.js - Add this method to the class
+
+/**
+ * Get all current affairs with pagination
+ */
+async getAllCurrentAffairs(page = 1, limit = 50, category = null, sortBy = 'date', sortOrder = 'DESC') {
+  try {
+    const offset = (page - 1) * limit;
+    
+    let query = `
+      SELECT * FROM \`Current_Affairs\` 
+    `;
+    const params = [];
+
+    if (category) {
+      query += ` WHERE \`category\` = ?`;
+      params.push(category);
+    }
+
+    // Validate sort column to prevent SQL injection
+    const validSortColumns = ['date', 'created_at', 'importance', 'category', 'difficulty'];
+    const safeSortBy = validSortColumns.includes(sortBy) ? sortBy : 'date';
+    
+    // Validate sort order
+    const safeSortOrder = sortOrder.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+    
+    query += ` ORDER BY \`${safeSortBy}\` ${safeSortOrder} LIMIT ? OFFSET ?`;
+    params.push(limit, offset);
+
+    const rows = await this.query(query, params);
+    
+    // Get total count for pagination
+    let countQuery = `SELECT COUNT(*) as total FROM \`Current_Affairs\``;
+    const countParams = [];
+    
+    if (category) {
+      countQuery += ` WHERE \`category\` = ?`;
+      countParams.push(category);
+    }
+    
+    const countResult = await this.query(countQuery, countParams);
+    const total = countResult[0].total;
+    const totalPages = Math.ceil(total / limit);
+    
+    return {
+      currentAffairs: rows.map(row => ({
+        ...row,
+        keyFacts: this.parseJSON(row.key_facts),
+        examRelevance: this.parseJSON(row.exam_relevance),
+        relatedTopics: this.parseJSON(row.related_topics),
+        mcqQuestion: this.parseJSON(row.mcq_question),
+        tags: this.parseJSON(row.tags)
+      })),
+      pagination: {
+        currentPage: page,
+        totalPages: totalPages,
+        totalItems: total,
+        itemsPerPage: limit,
+        hasNext: page < totalPages,
+        hasPrev: page > 1
+      }
+    };
+  } catch (error) {
+    console.error('Error getting all current affairs:', error);
+    throw error;
+  }
+}
+
   /**
    * Get total count
    */

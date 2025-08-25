@@ -247,3 +247,13 @@ CREATE TABLE `Trending_Topics` (
     INDEX `idx_frequency` (`frequency`),
     UNIQUE KEY `unique_topic_date` (`topic`, `date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Additional indexes for better performance on getAll queries
+ALTER TABLE `Current_Affairs` 
+ADD INDEX `idx_category_date` (`category`, `date`),
+ADD INDEX `idx_date_category` (`date`, `category`),
+ADD INDEX `idx_importance_date` (`importance`, `date`);
+
+ALTER TABLE `Trending_Topics`
+ADD INDEX `idx_category_frequency` (`category`, `frequency`),
+ADD INDEX `idx_date_category` (`date`, `category`);

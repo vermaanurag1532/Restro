@@ -230,6 +230,25 @@ export class CurrentAffairsService {
       };
     }
   }
+  // Services/currentAffairs.service.js - Add this method to the class
+
+/**
+ * Get all current affairs with pagination
+ */
+async getAllCurrentAffairs(page = 1, limit = 50, category = null, sortBy = 'date', sortOrder = 'DESC') {
+  try {
+    return await this.repository.getAllCurrentAffairs(
+      parseInt(page),
+      parseInt(limit),
+      category,
+      sortBy,
+      sortOrder
+    );
+  } catch (error) {
+    console.error('Error in getAllCurrentAffairs:', error);
+    throw error;
+  }
+}
 
   /**
    * Fetch and process current affairs with improved error handling and timeout

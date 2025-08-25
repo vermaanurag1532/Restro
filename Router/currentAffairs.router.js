@@ -19,6 +19,10 @@ router.get('/quiz', currentAffairsController.getCurrentAffairsQuiz.bind(currentA
 
 // Get trending topics for UPSC/PCS preparation
 router.get('/trending', currentAffairsController.getTrendingTopics.bind(currentAffairsController));
+// Router/currentAffairs.router.js - Add this route
+
+// Get all current affairs with pagination
+router.get('/', currentAffairsController.getAllCurrentAffairs.bind(currentAffairsController));
 
 // Get current affairs summary for specific exam
 router.get('/exam/:examType', currentAffairsController.getExamSpecificCurrentAffairs.bind(currentAffairsController));
