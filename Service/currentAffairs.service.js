@@ -250,75 +250,141 @@ async getAllCurrentAffairs(page = 1, limit = 50, category = null, sortBy = 'date
   }
 }
 
+
+/**
+ * Generate current affairs content using Gemini AI when search API fails
+ */
+async generateCurrentAffairsWithAI(date) {
+  try {
+    if (!this.isGeminiAPIValid || !this.model) {
+      throw new Error('Gemini AI not available for content generation');
+    }
+    
+    const categories = Object.keys(this.searchQueries);
+    const generatedNews = [];
+    
+    console.log(`🧠 Generating current affairs for ${categories.length} categories using AI...`);
+    
+    for (const category of categories) {
+      try {
+        console.log(`🤖 Generating ${category} news with AI...`);
+        
+        const prompt = `
+          Generate a current affairs news item for Indian government job exams (UPSC, PCS, SSC, Banking, Railway) 
+          in the category: ${category}.
+          
+          Requirements:
+          - Make it realistic and relevant to current events in India
+          - Include specific facts, figures, and details
+          - Focus on topics that would be important for competitive exams
+          - Current date: ${date}
+          
+          Return ONLY a JSON response:
+          {
+            "title": "News headline",
+            "summary": "Brief 2-3 line summary",
+            "content": "Detailed content paragraph",
+            "keyFacts": ["fact1", "fact2", "fact3", "fact4"],
+            "examRelevance": {
+              "upsc": 5,
+              "pcs": 5,
+              "ssc": 5,
+              "banking": 5,
+              "railway": 5
+            },
+            "relatedTopics": ["topic1", "topic2", "topic3"],
+            "mcqQuestion": {
+              "question": "Question?",
+              "options": {"A": "Option A", "B": "Option B", "C": "Option C", "D": "Option D"},
+              "correctAnswer": "A",
+              "explanation": "Brief explanation"
+            },
+            "tags": ["tag1", "tag2", "tag3"],
+            "difficulty": "Medium",
+            "importance": 7,
+            "source": "Credible Source Name"
+          }
+        `;
+        
+        const result = await this.model.generateContent(prompt);
+        const response = await result.response;
+        const text = response.text();
+        
+        const aiNews = this.parseAIResponse(text);
+        
+        if (aiNews && aiNews.title) {
+          const sequentialId = await this.generateUniqueId();
+          
+          const newsItem = {
+            id: sequentialId,
+            title: aiNews.title,
+            summary: aiNews.summary || '',
+            content: aiNews.content || aiNews.summary || '',
+            source: aiNews.source || 'AI Generated',
+            url: '#ai-generated',
+            category: category,
+            date: date,
+            keyFacts: aiNews.keyFacts || [],
+            examRelevance: aiNews.examRelevance || this.getDefaultExamRelevance(category),
+            relatedTopics: aiNews.relatedTopics || [],
+            mcqQuestion: aiNews.mcqQuestion || this.generateBasicMCQ(aiNews.title, category),
+            tags: aiNews.tags || [category],
+            difficulty: aiNews.difficulty || 'Medium',
+            importance: aiNews.importance || 7,
+            publishDate: new Date().toISOString().slice(0, 19).replace('T', ' '),
+            createdAt: new Date().toISOString().slice(0, 19).replace('T', ' '),
+            processedWith: 'AI Generation'
+          };
+          
+          generatedNews.push(newsItem);
+          console.log(`✅ AI generated: ${aiNews.title.substring(0, 50)}...`);
+        }
+      } catch (categoryError) {
+        console.warn(`❌ Failed to generate ${category} news with AI:`, categoryError.message);
+        // Continue with next category instead of failing completely
+      }
+      
+      // Add delay between AI requests to avoid rate limits
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+    
+    return generatedNews;
+  } catch (error) {
+    console.error('Error generating current affairs with AI:', error);
+    throw error;
+  }
+}
   /**
    * Fetch and process current affairs with improved error handling and timeout
    */
   async fetchAndProcessCurrentAffairs(date) {
     try {
       const allNews = [];
-      const categories = Object.keys(this.searchQueries);
       
-      console.log(`🔍 Attempting to fetch news for ${categories.length} categories...`);
+      console.log('🔍 Attempting to fetch/generate current affairs...');
       
-      // Process categories with timeout and limits
-      const maxCategoriesAtOnce = 2; // Reduced to avoid rate limits
-      const categoriesProcessed = [];
-      
-      for (let i = 0; i < categories.length; i += maxCategoriesAtOnce) {
-        const categoryBatch = categories.slice(i, i + maxCategoriesAtOnce);
-        
-        const batchPromises = categoryBatch.map(async (category) => {
-          try {
-            console.log(`📡 Fetching ${category} news...`);
-            const query = this.searchQueries[category];
-            const newsItems = await this.searchGoogleNewsWithTimeout(query, 2); // Reduced to 2 items
-            
-            const processedItems = [];
-            for (const item of newsItems) {
-              const processedItem = await this.processNewsItemWithFallback(item, category, date);
-              if (processedItem) {
-                processedItems.push(processedItem);
-              }
-            }
-            
-            categoriesProcessed.push(category);
-            return processedItems;
-          } catch (error) {
-            console.error(`❌ Error fetching news for category ${category}:`, error.message);
-            return []; // Return empty array instead of failing
-          }
-        });
-        
-        // Wait for batch to complete with timeout
-        try {
-          const batchResults = await Promise.allSettled(batchPromises);
-          
-          batchResults.forEach((result, index) => {
-            if (result.status === 'fulfilled') {
-              allNews.push(...result.value);
-            } else {
-              console.warn(`⚠️ Category ${categoryBatch[index]} failed:`, result.reason?.message);
-            }
-          });
-        } catch (batchError) {
-          console.error('❌ Batch processing error:', batchError.message);
-        }
-        
-        // Add longer delay between batches to avoid rate limits
-        if (i + maxCategoriesAtOnce < categories.length) {
-          console.log('⏳ Waiting 3 seconds between batches to avoid rate limits...');
-          await new Promise(resolve => setTimeout(resolve, 3000));
-        }
+      // If search API is available but fails, OR if search API is not available
+      // but Gemini AI is available, generate content with AI
+      if ((this.isSearchAPIValid && !this.isGeminiAPIValid) || 
+          (!this.isSearchAPIValid && this.isGeminiAPIValid)) {
+        console.log('🧠 Search API unavailable, generating content with Gemini AI...');
+        const generatedNews = await this.generateCurrentAffairsWithAI(date);
+        allNews.push(...generatedNews);
+      } 
+      // If both APIs are available but search fails, try AI generation
+      else if (this.isSearchAPIValid && this.isGeminiAPIValid) {
+        console.log('⚠️ Search API failed, falling back to AI generation...');
+        const generatedNews = await this.generateCurrentAffairsWithAI(date);
+        allNews.push(...generatedNews);
       }
-      
-      console.log(`✅ Processed ${categoriesProcessed.length} categories, got ${allNews.length} news items`);
-      
-      // If we got very few items, add sample data
-      if (allNews.length < 3) {
-        console.log('📝 Adding sample data to supplement limited results');
+      // If neither API is available, use sample data
+      else {
+        console.log('📋 Both APIs unavailable, using sample data...');
         const sampleData = await this.getSampleCurrentAffairs(date);
         allNews.push(...sampleData);
       }
+      
+      console.log(`✅ Generated ${allNews.length} news items`);
       
       // Remove duplicates and sort by relevance
       const uniqueNews = this.removeDuplicates(allNews);
@@ -333,7 +399,7 @@ async getAllCurrentAffairs(page = 1, limit = 50, category = null, sortBy = 'date
       return sortedNews;
     } catch (error) {
       console.error('Error in fetchAndProcessCurrentAffairs:', error);
-      // Return sample data as fallback
+      // Return sample data as final fallback
       return await this.getSampleCurrentAffairs(date);
     }
   }
@@ -344,9 +410,9 @@ async getAllCurrentAffairs(page = 1, limit = 50, category = null, sortBy = 'date
   async searchGoogleNewsWithTimeout(query, numResults = 3) {
     try {
       if (!this.isSearchAPIValid) {
-        return [];
+        throw new Error('Search API not configured');
       }
-
+  
       const searchUrl = 'https://www.googleapis.com/customsearch/v1';
       const params = {
         key: process.env.GOOGLE_SEARCH_API_KEY,
@@ -374,7 +440,7 @@ async getAllCurrentAffairs(page = 1, limit = 50, category = null, sortBy = 'date
       return [];
     } catch (error) {
       console.error('Error in searchGoogleNewsWithTimeout:', error.message);
-      return []; // Return empty array instead of throwing
+      throw error; // Throw error instead of returning empty array
     }
   }
 
