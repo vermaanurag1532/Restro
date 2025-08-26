@@ -88,6 +88,45 @@ export class CurrentAffairsRepository {
     await this.query(createQuizTableQuery);
   }
 
+  async getNextSequentialId() {
+    try {
+      // Create a table to track sequential IDs if it doesn't exist
+      await this.createSequentialIdTable();
+      
+      // Get or create the sequential ID counter
+      const getQuery = `
+        SELECT \`last_id\` FROM \`Current_Affairs_Sequential\` 
+        WHERE \`id\` = 1 FOR UPDATE
+      `;
+      
+      const rows = await this.query(getQuery);
+      
+      if (rows.length === 0) {
+        // Initialize with ID 1
+        const insertQuery = `
+          INSERT INTO \`Current_Affairs_Sequential\` (\`id\`, \`last_id\`) 
+          VALUES (1, 1)
+        `;
+        await this.query(insertQuery);
+        return 1;
+      } else {
+        // Increment and return the next ID
+        const updateQuery = `
+          UPDATE \`Current_Affairs_Sequential\` 
+          SET \`last_id\` = \`last_id\` + 1 
+          WHERE \`id\` = 1
+        `;
+        await this.query(updateQuery);
+        return rows[0].last_id + 1;
+      }
+    } catch (error) {
+      console.error('Error getting sequential ID:', error);
+      
+      // Fallback: use timestamp-based ID
+      return 'CA-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
+    }
+  }
+
   /**
    * Create trending topics table
    */

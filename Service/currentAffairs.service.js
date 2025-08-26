@@ -1043,7 +1043,7 @@ async getAllCurrentAffairs(page = 1, limit = 50, category = null, sortBy = 'date
    */
   
   generateUniqueId() {
-    return 'CA-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+    return this.repository.getNextSequentialId;
   }
   
   extractPublishDate(item) {
