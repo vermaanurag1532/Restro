@@ -408,7 +408,7 @@ async getAllCurrentAffairs(page = 1, limit = 50, category = null, sortBy = 'date
       }
       
       return {
-        id: this.generateUniqueId(),
+        id: await this.generateUniqueId(),
         title: newsItem.title,
         summary: aiAnalysis.summary || newsItem.snippet,
         content: newsItem.snippet,
@@ -1043,7 +1043,7 @@ async getAllCurrentAffairs(page = 1, limit = 50, category = null, sortBy = 'date
    */
   
   async generateUniqueId() {
-    const id = await this.repository.getNextSequentialId;
+    const id = await this.repository.getNextSequentialId();
     return id;
   }
   
