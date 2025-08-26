@@ -140,7 +140,23 @@ export class CurrentAffairsRepository {
 
 /**
  * Save current affairs data with improved error handling
+ * 
+ * 
  */
+
+formatDateForMySQL(dateString) {
+  if (!dateString) return null;
+  
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return null;
+    
+    return date.toISOString().slice(0, 19).replace('T', ' ');
+  } catch (error) {
+    console.error('Error formatting date:', error);
+    return null;
+  }
+}
 async saveCurrentAffairs(currentAffairsArray, date) {
   try {
     const insertQuery = `
@@ -171,6 +187,9 @@ async saveCurrentAffairs(currentAffairsArray, date) {
           itemId = 'CA-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6);
         }
         
+        // Format the publish_date for MySQL
+        const formattedPublishDate = this.formatDateForMySQL(item.publishDate);
+        
         const values = [
           itemId,
           item.title || '',
@@ -187,7 +206,7 @@ async saveCurrentAffairs(currentAffairsArray, date) {
           this.stringifyJSON(item.tags || []),
           item.difficulty || 'Medium',
           item.importance || 5,
-          item.publishDate || new Date().toISOString()
+          formattedPublishDate
         ];
 
         const result = await this.query(insertQuery, values);
