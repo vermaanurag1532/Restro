@@ -385,13 +385,17 @@ async getAllCurrentAffairs(page = 1, limit = 50, category = null, sortBy = 'date
     try {
       const id = await this.repository.getNextSequentialId();
       
-      // Ensure we get a proper ID, not a function or other unexpected value
-      if (typeof id === 'function') {
-        throw new Error('Function returned instead of ID');
+      // Ensure we get a proper numeric ID
+      if (typeof id === 'number') {
+        return id.toString();
       }
       
-      // Convert to string if it's a number
-      return id.toString();
+      // If we got a string that represents a number, use it
+      if (typeof id === 'string' && /^\d+$/.test(id)) {
+        return id;
+      }
+      
+      throw new Error('Invalid ID format received');
     } catch (error) {
       console.error('Error generating sequential ID, using fallback:', error.message);
       // Fallback to timestamp-based ID
@@ -402,57 +406,59 @@ async getAllCurrentAffairs(page = 1, limit = 50, category = null, sortBy = 'date
   /**
    * Process individual news item with fallback (no AI if API key invalid)
    */
-  async processNewsItemWithFallback(newsItem, category, date) {
-    try {
-      let aiAnalysis = {};
-      
-      // Try to use AI analysis if available (with timeout)
-      if (this.isGeminiAPIValid && this.model) {
-        try {
-          const aiPromise = this.processNewsItemWithAI(newsItem, category);
-          const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('AI processing timeout')), 15000)
-          );
-          
-          aiAnalysis = await Promise.race([aiPromise, timeoutPromise]);
-          console.log(`🧠 AI processed: ${newsItem.title.substring(0, 50)}...`);
-        } catch (error) {
-          console.warn('⚠️  AI processing failed, using fallback processing:', error.message);
-          aiAnalysis = this.processNewsItemFallback(newsItem, category);
-        }
-      } else {
-        // Use fallback processing without AI
+// Services/currentAffairs.service.js - Simplify the processNewsItemWithFallback method
+
+async processNewsItemWithFallback(newsItem, category, date) {
+  try {
+    let aiAnalysis = {};
+    
+    // Try to use AI analysis if available (with timeout)
+    if (this.isGeminiAPIValid && this.model) {
+      try {
+        const aiPromise = this.processNewsItemWithAI(newsItem, category);
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('AI processing timeout')), 15000)
+        );
+        
+        aiAnalysis = await Promise.race([aiPromise, timeoutPromise]);
+        console.log(`🧠 AI processed: ${newsItem.title.substring(0, 50)}...`);
+      } catch (error) {
+        console.warn('⚠️  AI processing failed, using fallback processing:', error.message);
         aiAnalysis = this.processNewsItemFallback(newsItem, category);
       }
-      
-      // Generate sequential ID - MAKE SURE TO AWAIT THE PROMISE
-      const sequentialId = await this.generateUniqueId();
-      
-      return {
-        id: sequentialId, // Use sequential ID instead of timestamp-based ID
-        title: newsItem.title,
-        summary: aiAnalysis.summary || newsItem.snippet,
-        content: newsItem.snippet,
-        source: newsItem.displayLink,
-        url: newsItem.link,
-        category: category,
-        date: date,
-        keyFacts: aiAnalysis.keyFacts || [],
-        examRelevance: aiAnalysis.examRelevance || this.getDefaultExamRelevance(category),
-        relatedTopics: aiAnalysis.relatedTopics || [],
-        mcqQuestion: aiAnalysis.mcqQuestion || null,
-        tags: aiAnalysis.tags || [category],
-        difficulty: aiAnalysis.difficulty || 'Medium',
-        importance: aiAnalysis.importance || 5,
-        publishDate: newsItem.publishDate,
-        createdAt: new Date().toISOString(),
-        processedWith: this.isGeminiAPIValid ? 'AI' : 'Fallback'
-      };
-    } catch (error) {
-      console.error('Error processing news item:', error);
-      return null;
+    } else {
+      // Use fallback processing without AI
+      aiAnalysis = this.processNewsItemFallback(newsItem, category);
     }
+    
+    // Use simple timestamp-based ID to avoid issues
+    const simpleId = 'CA-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6);
+    
+    return {
+      id: simpleId,
+      title: newsItem.title || 'Untitled News',
+      summary: aiAnalysis.summary || newsItem.snippet || '',
+      content: newsItem.snippet || '',
+      source: newsItem.displayLink || '',
+      url: newsItem.link || '',
+      category: category || 'general',
+      date: date,
+      keyFacts: aiAnalysis.keyFacts || [],
+      examRelevance: aiAnalysis.examRelevance || this.getDefaultExamRelevance(category),
+      relatedTopics: aiAnalysis.relatedTopics || [],
+      mcqQuestion: aiAnalysis.mcqQuestion || null,
+      tags: aiAnalysis.tags || [category || 'general'],
+      difficulty: aiAnalysis.difficulty || 'Medium',
+      importance: aiAnalysis.importance || 5,
+      publishDate: newsItem.publishDate || new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+      processedWith: this.isGeminiAPIValid ? 'AI' : 'Fallback'
+    };
+  } catch (error) {
+    console.error('Error processing news item:', error);
+    return null;
   }
+}
 
   /**
    * Process news item with AI (updated with better error handling)
@@ -539,64 +545,63 @@ async getAllCurrentAffairs(page = 1, limit = 50, category = null, sortBy = 'date
     };
   }
 
-  /**
-   * Generate comprehensive sample current affairs data
-   */
-  async getSampleCurrentAffairs(date) {
-    // Generate sequential IDs for sample data
-    const sampleData = [];
+// Services/currentAffairs.service.js - Update the getSampleCurrentAffairs method
+
+async getSampleCurrentAffairs(date) {
+  const sampleData = [];
+  
+  for (let i = 1; i <= 5; i++) {
+    // Use simple timestamp-based IDs for sample data
+    const simpleId = 'SAMPLE-' + Date.now() + '-' + i;
     
-    for (let i = 1; i <= 5; i++) {
-      const sequentialId = await this.generateUniqueId();
-      
-      sampleData.push({
-        id: sequentialId,
-        title: `Sample News Title ${i}`,
-        summary: `Sample summary for news item ${i}`,
-        content: `Detailed content for sample news item ${i}`,
-        source: "sample.com",
-        url: `#sample-${i}`,
-        category: i % 2 === 0 ? "politics" : "economics",
-        date: date,
-        keyFacts: [`Key fact ${i}`, `Another fact ${i}`],
-        examRelevance: {
-          upsc: 8,
-          pcs: 6,
-          ssc: 5,
-          banking: 7,
-          railway: 4
+    sampleData.push({
+      id: simpleId,
+      title: `Sample News Title ${i}`,
+      summary: `Sample summary for news item ${i}`,
+      content: `Detailed content for sample news item ${i}`,
+      source: "sample.com",
+      url: `#sample-${i}`,
+      category: i % 2 === 0 ? "politics" : "economics",
+      date: date,
+      keyFacts: [`Key fact ${i}`, `Another fact ${i}`],
+      examRelevance: {
+        upsc: 8,
+        pcs: 6,
+        ssc: 5,
+        banking: 7,
+        railway: 4
+      },
+      relatedTopics: ["Topic 1", "Topic 2"],
+      mcqQuestion: {
+        question: `Sample question ${i}?`,
+        options: {
+          A: "Option A",
+          B: "Option B", 
+          C: "Option C",
+          D: "Option D"
         },
-        relatedTopics: ["Topic 1", "Topic 2"],
-        mcqQuestion: {
-          question: `Sample question ${i}?`,
-          options: {
-            A: "Option A",
-            B: "Option B", 
-            C: "Option C",
-            D: "Option D"
-          },
-          correctAnswer: "A",
-          explanation: "Sample explanation"
-        },
-        tags: ["sample", "test"],
-        difficulty: "Medium",
-        importance: 7,
-        publishDate: new Date().toISOString(),
-        createdAt: new Date().toISOString(),
-        processedWith: "Sample"
-      });
-    }
-  
-    // Save sample data to database
-    try {
-      await this.repository.saveCurrentAffairs(sampleData, date);
-      console.log(`💾 Saved ${sampleData.length} sample items to database`);
-    } catch (error) {
-      console.error('Error saving sample data:', error);
-    }
-  
-    return sampleData;
+        correctAnswer: "A",
+        explanation: "Sample explanation"
+      },
+      tags: ["sample", "test"],
+      difficulty: "Medium",
+      importance: 7,
+      publishDate: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+      processedWith: "Sample"
+    });
   }
+
+  // Save sample data to database
+  try {
+    await this.repository.saveCurrentAffairs(sampleData, date);
+    console.log(`💾 Saved ${sampleData.length} sample items to database`);
+  } catch (error) {
+    console.error('Error saving sample data:', error);
+  }
+
+  return sampleData;
+}
 
   // ... (include all the helper methods from the previous version)
 

@@ -90,37 +90,18 @@ export class CurrentAffairsRepository {
 
   async getNextSequentialId() {
     try {
-      // Create a table to track sequential IDs if it doesn't exist
-      await this.createSequentialIdTable();
+      // First, try to get the maximum ID from existing records
+      const maxIdQuery = `SELECT MAX(CAST(\`id\` AS UNSIGNED)) as max_id FROM \`Current_Affairs\` WHERE \`id\` REGEXP '^[0-9]+$'`;
+      const maxIdResult = await this.query(maxIdQuery);
       
-      // Get or create the sequential ID counter
-      const getQuery = `
-        SELECT \`last_id\` FROM \`Current_Affairs_Sequential\` 
-        WHERE \`id\` = 1 FOR UPDATE
-      `;
-      
-      const rows = await this.query(getQuery);
-      
-      if (rows.length === 0) {
-        // Initialize with ID 0 so the first ID will be 1
-        const insertQuery = `
-          INSERT INTO \`Current_Affairs_Sequential\` (\`id\`, \`last_id\`) 
-          VALUES (1, 0)
-        `;
-        await this.query(insertQuery);
-        return 1;
-      } else {
-        // Increment and return the next ID
-        const updateQuery = `
-          UPDATE \`Current_Affairs_Sequential\` 
-          SET \`last_id\` = \`last_id\` + 1 
-          WHERE \`id\` = 1
-        `;
-        await this.query(updateQuery);
-        return rows[0].last_id + 1;
+      let nextId = 1;
+      if (maxIdResult[0].max_id !== null) {
+        nextId = maxIdResult[0].max_id + 1;
       }
+      
+      return nextId;
     } catch (error) {
-      console.error('Error getting sequential ID:', error);
+      console.error('Error getting sequential ID from max query:', error);
       
       // Fallback: use timestamp-based ID
       return 'CA-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
@@ -155,95 +136,79 @@ export class CurrentAffairsRepository {
   /**
    * Save current affairs data with improved JSON handling
    */
-  async saveCurrentAffairs(currentAffairsArray, date) {
-    try {
-      const insertQuery = `
-        INSERT INTO \`Current_Affairs\` (
-          \`id\`, \`title\`, \`summary\`, \`content\`, \`source\`, \`url\`, 
-          \`category\`, \`date\`, \`key_facts\`, \`exam_relevance\`, 
-          \`related_topics\`, \`mcq_question\`, \`tags\`, \`difficulty\`, 
-          \`importance\`, \`publish_date\`
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ON DUPLICATE KEY UPDATE
-          \`summary\` = VALUES(\`summary\`),
-          \`content\` = VALUES(\`content\`),
-          \`exam_relevance\` = VALUES(\`exam_relevance\`),
-          \`importance\` = VALUES(\`importance\`),
-          \`updated_at\` = CURRENT_TIMESTAMP
-      `;
-  
-      const results = [];
-      
-      for (const item of currentAffairsArray) {
-        try {
-          // Ensure ID is a string (convert numbers to strings)
-          const itemId = item.id ? item.id.toString() : await this.getNextSequentialId();
-          
-          const values = [
-            itemId,
-            item.title,
-            item.summary,
-            item.content,
-            item.source,
-            item.url,
-            item.category,
-            date,
-            this.stringifyJSON(item.keyFacts || []),
-            this.stringifyJSON(item.examRelevance || {}),
-            this.stringifyJSON(item.relatedTopics || []),
-            this.stringifyJSON(item.mcqQuestion || null),
-            this.stringifyJSON(item.tags || []),
-            item.difficulty || 'Medium',
-            item.importance || 5,
-            item.publishDate
-          ];
-  
-          const result = await this.query(insertQuery, values);
-          results.push(result);
-  
-          // Update trending topics
-          await this.updateTrendingTopics(item.title, item.category, date, item.examRelevance);
-        } catch (error) {
-          console.error('Error saving individual current affairs item:', error);
-          // If there's an error with sequential ID, try with fallback ID
-          if (error.code === 'ER_DATA_TOO_LONG' || error.errno === 1406) {
-            try {
-              const fallbackId = 'CA-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
-              const values = [
-                fallbackId,
-                item.title,
-                item.summary,
-                item.content,
-                item.source,
-                item.url,
-                item.category,
-                date,
-                this.stringifyJSON(item.keyFacts || []),
-                this.stringifyJSON(item.examRelevance || {}),
-                this.stringifyJSON(item.relatedTopics || []),
-                this.stringifyJSON(item.mcqQuestion || null),
-                this.stringifyJSON(item.tags || []),
-                item.difficulty || 'Medium',
-                item.importance || 5,
-                item.publishDate
-              ];
-              
-              const result = await this.query(insertQuery, values);
-              results.push(result);
-              console.log(`✅ Used fallback ID for item: ${fallbackId}`);
-            } catch (fallbackError) {
-              console.error('Error with fallback ID too:', fallbackError);
-            }
-          }
+// Repository/currentAffairs.repository.js - Update the saveCurrentAffairs method
+
+/**
+ * Save current affairs data with improved error handling
+ */
+async saveCurrentAffairs(currentAffairsArray, date) {
+  try {
+    const insertQuery = `
+      INSERT INTO \`Current_Affairs\` (
+        \`id\`, \`title\`, \`summary\`, \`content\`, \`source\`, \`url\`, 
+        \`category\`, \`date\`, \`key_facts\`, \`exam_relevance\`, 
+        \`related_topics\`, \`mcq_question\`, \`tags\`, \`difficulty\`, 
+        \`importance\`, \`publish_date\`
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON DUPLICATE KEY UPDATE
+        \`summary\` = VALUES(\`summary\`),
+        \`content\` = VALUES(\`content\`),
+        \`exam_relevance\` = VALUES(\`exam_relevance\`),
+        \`importance\` = VALUES(\`importance\`),
+        \`updated_at\` = CURRENT_TIMESTAMP
+    `;
+
+    const results = [];
+    
+    for (const item of currentAffairsArray) {
+      try {
+        // Generate a simple ID - use existing ID or create a new one
+        let itemId;
+        if (item.id && typeof item.id === 'string' && item.id.length <= 255) {
+          itemId = item.id;
+        } else {
+          // Use a simple timestamp-based ID to avoid complexity
+          itemId = 'CA-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6);
         }
+        
+        const values = [
+          itemId,
+          item.title || '',
+          item.summary || '',
+          item.content || '',
+          item.source || '',
+          item.url || '',
+          item.category || 'general',
+          date,
+          this.stringifyJSON(item.keyFacts || []),
+          this.stringifyJSON(item.examRelevance || {}),
+          this.stringifyJSON(item.relatedTopics || []),
+          this.stringifyJSON(item.mcqQuestion || null),
+          this.stringifyJSON(item.tags || []),
+          item.difficulty || 'Medium',
+          item.importance || 5,
+          item.publishDate || new Date().toISOString()
+        ];
+
+        const result = await this.query(insertQuery, values);
+        results.push(result);
+
+        // Update trending topics
+        if (item.title) {
+          await this.updateTrendingTopics(item.title, item.category || 'general', date, item.examRelevance || {});
+        }
+      } catch (error) {
+        console.error('Error saving individual current affairs item:', error.message);
+        // Continue with next item instead of stopping
       }
-  
-      return results;
-    } catch (error) {
-      console.error('Error saving current affairs:', error);
-      throw error;
     }
+
+    return results;
+  } catch (error) {
+    console.error('Error saving current affairs:', error);
+    throw error;
   }
+}
 
   ensureString(value) {
     if (value === null || value === undefined) {
