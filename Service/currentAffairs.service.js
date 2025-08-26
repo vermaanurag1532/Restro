@@ -387,26 +387,29 @@ async getAllCurrentAffairs(page = 1, limit = 50, category = null, sortBy = 'date
       
       // Ensure we get a proper numeric ID
       if (typeof id === 'number') {
-        return id.toString();
+        return id;
       }
       
-      // If we got a string that represents a number, use it
+      // If we got a string that represents a number, convert it
       if (typeof id === 'string' && /^\d+$/.test(id)) {
-        return id;
+        return parseInt(id, 10);
       }
       
       throw new Error('Invalid ID format received');
     } catch (error) {
       console.error('Error generating sequential ID, using fallback:', error.message);
-      // Fallback to timestamp-based ID
-      return 'CA-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
+      // Fallback to simple incremental ID
+      try {
+        const count = await this.repository.getTotalCount();
+        return count + 1;
+      } catch (countError) {
+        console.error('Error getting count for fallback ID:', countError);
+        return Math.floor(Math.random() * 1000) + 1; // Random fallback
+      }
     }
   }
 
-  /**
-   * Process individual news item with fallback (no AI if API key invalid)
-   */
-// Services/currentAffairs.service.js - Simplify the processNewsItemWithFallback method
+// Services/currentAffairs.service.js - Update the processNewsItemWithFallback method
 
 async processNewsItemWithFallback(newsItem, category, date) {
   try {
@@ -431,11 +434,23 @@ async processNewsItemWithFallback(newsItem, category, date) {
       aiAnalysis = this.processNewsItemFallback(newsItem, category);
     }
     
-    // Use simple timestamp-based ID to avoid issues
-    const simpleId = 'CA-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6);
+    // Generate sequential numeric ID
+    const sequentialId = await this.generateUniqueId();
+    
+    // Format publish date for MySQL
+    const formatPublishDate = (dateString) => {
+      if (!dateString) return null;
+      try {
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return null;
+        return date.toISOString().slice(0, 19).replace('T', ' ');
+      } catch {
+        return null;
+      }
+    };
     
     return {
-      id: simpleId,
+      id: sequentialId, // This will be a number like 1, 2, 3, etc.
       title: newsItem.title || 'Untitled News',
       summary: aiAnalysis.summary || newsItem.snippet || '',
       content: newsItem.snippet || '',
@@ -450,8 +465,8 @@ async processNewsItemWithFallback(newsItem, category, date) {
       tags: aiAnalysis.tags || [category || 'general'],
       difficulty: aiAnalysis.difficulty || 'Medium',
       importance: aiAnalysis.importance || 5,
-      publishDate: newsItem.publishDate || new Date().toISOString(),
-      createdAt: new Date().toISOString(),
+      publishDate: formatPublishDate(newsItem.publishDate),
+      createdAt: new Date().toISOString().slice(0, 19).replace('T', ' '),
       processedWith: this.isGeminiAPIValid ? 'AI' : 'Fallback'
     };
   } catch (error) {
@@ -550,12 +565,24 @@ async processNewsItemWithFallback(newsItem, category, date) {
 async getSampleCurrentAffairs(date) {
   const sampleData = [];
   
+  // Helper function to format date for MySQL
+  const formatDateForMySQL = (dateString) => {
+    if (!dateString) return null;
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return null;
+      return date.toISOString().slice(0, 19).replace('T', ' ');
+    } catch {
+      return null;
+    }
+  };
+  
+  // Get the next sequential ID to start from
+  let nextId = await this.generateUniqueId();
+  
   for (let i = 1; i <= 5; i++) {
-    // Use simple timestamp-based IDs for sample data
-    const simpleId = 'SAMPLE-' + Date.now() + '-' + i;
-    
     sampleData.push({
-      id: simpleId,
+      id: nextId + i - 1, // Use sequential numeric IDs
       title: `Sample News Title ${i}`,
       summary: `Sample summary for news item ${i}`,
       content: `Detailed content for sample news item ${i}`,
@@ -586,8 +613,8 @@ async getSampleCurrentAffairs(date) {
       tags: ["sample", "test"],
       difficulty: "Medium",
       importance: 7,
-      publishDate: new Date().toISOString(),
-      createdAt: new Date().toISOString(),
+      publishDate: formatDateForMySQL(new Date().toISOString()),
+      createdAt: new Date().toISOString().slice(0, 19).replace('T', ' '),
       processedWith: "Sample"
     });
   }

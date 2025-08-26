@@ -90,21 +90,45 @@ export class CurrentAffairsRepository {
 
   async getNextSequentialId() {
     try {
-      // First, try to get the maximum ID from existing records
-      const maxIdQuery = `SELECT MAX(CAST(\`id\` AS UNSIGNED)) as max_id FROM \`Current_Affairs\` WHERE \`id\` REGEXP '^[0-9]+$'`;
-      const maxIdResult = await this.query(maxIdQuery);
+      // First, check if we have any existing records
+      const checkQuery = `SELECT COUNT(*) as count FROM \`Current_Affairs\``;
+      const countResult = await this.query(checkQuery);
       
-      let nextId = 1;
-      if (maxIdResult[0].max_id !== null) {
-        nextId = maxIdResult[0].max_id + 1;
+      if (countResult[0].count === 0) {
+        // No records exist yet, start with ID 1
+        return 1;
       }
       
-      return nextId;
-    } catch (error) {
-      console.error('Error getting sequential ID from max query:', error);
+      // Get the maximum numeric ID from existing records
+      const maxIdQuery = `
+        SELECT MAX(CAST(\`id\` AS UNSIGNED)) as max_id 
+        FROM \`Current_Affairs\` 
+        WHERE \`id\` REGEXP '^[0-9]+$'
+      `;
       
-      // Fallback: use timestamp-based ID
-      return 'CA-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
+      const maxIdResult = await this.query(maxIdQuery);
+      const maxId = maxIdResult[0].max_id;
+      
+      if (maxId === null) {
+        // No numeric IDs found, start with ID 1
+        return 1;
+      }
+      
+      // Return the next sequential ID
+      return maxId + 1;
+      
+    } catch (error) {
+      console.error('Error getting sequential ID:', error);
+      
+      // Fallback: use simple incremental ID based on count
+      try {
+        const countQuery = `SELECT COUNT(*) as count FROM \`Current_Affairs\``;
+        const countResult = await this.query(countQuery);
+        return countResult[0].count + 1;
+      } catch (countError) {
+        console.error('Error getting count for fallback ID:', countError);
+        return Math.floor(Math.random() * 1000) + 1; // Random fallback
+      }
     }
   }
 
@@ -178,20 +202,24 @@ async saveCurrentAffairs(currentAffairsArray, date) {
     
     for (const item of currentAffairsArray) {
       try {
-        // Generate a simple ID - use existing ID or create a new one
+        // Use numeric ID - either existing or generate new one
         let itemId;
-        if (item.id && typeof item.id === 'string' && item.id.length <= 255) {
+        if (item.id && typeof item.id === 'number') {
           itemId = item.id;
+        } else if (item.id && typeof item.id === 'string' && /^\d+$/.test(item.id)) {
+          itemId = parseInt(item.id, 10);
         } else {
-          // Use a simple timestamp-based ID to avoid complexity
-          itemId = 'CA-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6);
+          // Get a new sequential ID from the service
+          const CurrentAffairsService = require('../Services/currentAffairs.service.js');
+          const service = new CurrentAffairsService();
+          itemId = await service.generateUniqueId();
         }
         
         // Format the publish_date for MySQL
         const formattedPublishDate = this.formatDateForMySQL(item.publishDate);
         
         const values = [
-          itemId,
+          itemId, // This should now be a number
           item.title || '',
           item.summary || '',
           item.content || '',
