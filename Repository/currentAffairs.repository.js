@@ -102,10 +102,10 @@ export class CurrentAffairsRepository {
       const rows = await this.query(getQuery);
       
       if (rows.length === 0) {
-        // Initialize with ID 1
+        // Initialize with ID 0 so the first ID will be 1
         const insertQuery = `
           INSERT INTO \`Current_Affairs_Sequential\` (\`id\`, \`last_id\`) 
-          VALUES (1, 1)
+          VALUES (1, 0)
         `;
         await this.query(insertQuery);
         return 1;
@@ -176,24 +176,26 @@ export class CurrentAffairsRepository {
       
       for (const item of currentAffairsArray) {
         try {
-          // Ensure all values are properly formatted
+          // Ensure ID is a string (convert numbers to strings)
+          const itemId = item.id ? item.id.toString() : await this.getNextSequentialId();
+          
           const values = [
-            this.ensureString(item.id),
-            this.ensureString(item.title),
-            this.ensureString(item.summary),
-            this.ensureString(item.content),
-            this.ensureString(item.source),
-            this.ensureString(item.url),
-            this.ensureString(item.category),
+            itemId,
+            item.title,
+            item.summary,
+            item.content,
+            item.source,
+            item.url,
+            item.category,
             date,
             this.stringifyJSON(item.keyFacts || []),
             this.stringifyJSON(item.examRelevance || {}),
             this.stringifyJSON(item.relatedTopics || []),
             this.stringifyJSON(item.mcqQuestion || null),
             this.stringifyJSON(item.tags || []),
-            this.ensureString(item.difficulty || 'Medium'),
-            this.ensureNumber(item.importance || 5),
-            item.publishDate ? new Date(item.publishDate).toISOString().split('T')[0] : null
+            item.difficulty || 'Medium',
+            item.importance || 5,
+            item.publishDate
           ];
   
           const result = await this.query(insertQuery, values);
@@ -203,7 +205,36 @@ export class CurrentAffairsRepository {
           await this.updateTrendingTopics(item.title, item.category, date, item.examRelevance);
         } catch (error) {
           console.error('Error saving individual current affairs item:', error);
-          console.error('Problematic item:', JSON.stringify(item, null, 2));
+          // If there's an error with sequential ID, try with fallback ID
+          if (error.code === 'ER_DATA_TOO_LONG' || error.errno === 1406) {
+            try {
+              const fallbackId = 'CA-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
+              const values = [
+                fallbackId,
+                item.title,
+                item.summary,
+                item.content,
+                item.source,
+                item.url,
+                item.category,
+                date,
+                this.stringifyJSON(item.keyFacts || []),
+                this.stringifyJSON(item.examRelevance || {}),
+                this.stringifyJSON(item.relatedTopics || []),
+                this.stringifyJSON(item.mcqQuestion || null),
+                this.stringifyJSON(item.tags || []),
+                item.difficulty || 'Medium',
+                item.importance || 5,
+                item.publishDate
+              ];
+              
+              const result = await this.query(insertQuery, values);
+              results.push(result);
+              console.log(`✅ Used fallback ID for item: ${fallbackId}`);
+            } catch (fallbackError) {
+              console.error('Error with fallback ID too:', fallbackError);
+            }
+          }
         }
       }
   

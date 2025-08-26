@@ -381,6 +381,24 @@ async getAllCurrentAffairs(page = 1, limit = 50, category = null, sortBy = 'date
     }
   }
 
+  async generateUniqueId() {
+    try {
+      const id = await this.repository.getNextSequentialId();
+      
+      // Ensure we get a proper ID, not a function or other unexpected value
+      if (typeof id === 'function') {
+        throw new Error('Function returned instead of ID');
+      }
+      
+      // Convert to string if it's a number
+      return id.toString();
+    } catch (error) {
+      console.error('Error generating sequential ID, using fallback:', error.message);
+      // Fallback to timestamp-based ID
+      return 'CA-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
+    }
+  }
+
   /**
    * Process individual news item with fallback (no AI if API key invalid)
    */
@@ -407,8 +425,11 @@ async getAllCurrentAffairs(page = 1, limit = 50, category = null, sortBy = 'date
         aiAnalysis = this.processNewsItemFallback(newsItem, category);
       }
       
+      // Generate sequential ID - MAKE SURE TO AWAIT THE PROMISE
+      const sequentialId = await this.generateUniqueId();
+      
       return {
-        id: await this.generateUniqueId(),
+        id: sequentialId, // Use sequential ID instead of timestamp-based ID
         title: newsItem.title,
         summary: aiAnalysis.summary || newsItem.snippet,
         content: newsItem.snippet,
@@ -522,214 +543,50 @@ async getAllCurrentAffairs(page = 1, limit = 50, category = null, sortBy = 'date
    * Generate comprehensive sample current affairs data
    */
   async getSampleCurrentAffairs(date) {
-    const sampleData = [
-      {
-        id: `CA-SAMPLE-${Date.now()}-1`,
-        title: "India's Digital Infrastructure Development Accelerates",
-        summary: "Government announces new digital infrastructure initiatives to boost connectivity and digital governance across rural and urban areas.",
-        content: "The Government of India has unveiled comprehensive digital infrastructure development plans focusing on enhancing connectivity in rural areas and strengthening digital governance mechanisms.",
-        source: "Government Portal",
-        url: "#sample-1",
-        category: "politics",
+    // Generate sequential IDs for sample data
+    const sampleData = [];
+    
+    for (let i = 1; i <= 5; i++) {
+      const sequentialId = await this.generateUniqueId();
+      
+      sampleData.push({
+        id: sequentialId,
+        title: `Sample News Title ${i}`,
+        summary: `Sample summary for news item ${i}`,
+        content: `Detailed content for sample news item ${i}`,
+        source: "sample.com",
+        url: `#sample-${i}`,
+        category: i % 2 === 0 ? "politics" : "economics",
         date: date,
-        keyFacts: [
-          "Digital infrastructure expansion announced",
-          "Rural connectivity focus",
-          "Government digital governance initiative",
-          "Investment of ₹1 lakh crore planned"
-        ],
-        examRelevance: {
-          upsc: 9,
-          pcs: 8,
-          ssc: 6,
-          banking: 5,
-          railway: 5
-        },
-        relatedTopics: ["Digital India", "Infrastructure", "Governance", "Rural Development"],
-        mcqQuestion: {
-          question: "Which initiative focuses on digital infrastructure development in India?",
-          options: {
-            A: "Digital India Mission",
-            B: "Smart Cities Mission", 
-            C: "Skill India Program",
-            D: "Make in India"
-          },
-          correctAnswer: "A",
-          explanation: "Digital India Mission is the primary government initiative for digital infrastructure development."
-        },
-        tags: ["politics", "digital", "infrastructure", "governance"],
-        difficulty: "Medium",
-        importance: 8,
-        publishDate: new Date().toISOString(),
-        createdAt: new Date().toISOString(),
-        processedWith: "Sample"
-      },
-      {
-        id: `CA-SAMPLE-${Date.now()}-2`,
-        title: "RBI Monetary Policy Review: Repo Rate Maintained at 6.5%",
-        summary: "Reserve Bank of India maintains repo rate at 6.5% in latest monetary policy review, citing economic stability and inflation control measures.",
-        content: "The Reserve Bank of India's Monetary Policy Committee has decided to maintain the repo rate at 6.5% considering current economic indicators and inflation trends.",
-        source: "Economic Times",
-        url: "#sample-2",
-        category: "economics",
-        date: date,
-        keyFacts: [
-          "Repo rate maintained at 6.5%",
-          "MPC decision unanimous",
-          "Inflation within target range",
-          "GDP growth projection revised"
-        ],
+        keyFacts: [`Key fact ${i}`, `Another fact ${i}`],
         examRelevance: {
           upsc: 8,
           pcs: 6,
           ssc: 5,
-          banking: 10,
+          banking: 7,
           railway: 4
         },
-        relatedTopics: ["Monetary Policy", "RBI", "Inflation", "Economic Growth"],
+        relatedTopics: ["Topic 1", "Topic 2"],
         mcqQuestion: {
-          question: "What is the current repo rate maintained by RBI?",
+          question: `Sample question ${i}?`,
           options: {
-            A: "6.0%",
-            B: "6.5%",
-            C: "7.0%",
-            D: "7.5%"
+            A: "Option A",
+            B: "Option B", 
+            C: "Option C",
+            D: "Option D"
           },
-          correctAnswer: "B",
-          explanation: "The Reserve Bank of India has maintained the repo rate at 6.5% in its latest monetary policy review."
+          correctAnswer: "A",
+          explanation: "Sample explanation"
         },
-        tags: ["economics", "RBI", "monetary", "policy"],
+        tags: ["sample", "test"],
         difficulty: "Medium",
-        importance: 9,
-        publishDate: new Date().toISOString(),
-        createdAt: new Date().toISOString(),
-        processedWith: "Sample"
-      },
-      {
-        id: `CA-SAMPLE-${Date.now()}-3`,
-        title: "ISRO Successfully Launches Chandrayaan-4 Mission",
-        summary: "Indian Space Research Organisation achieves another milestone with successful launch of Chandrayaan-4 lunar exploration mission.",
-        content: "ISRO has successfully launched Chandrayaan-4, India's fourth lunar mission, aimed at advanced lunar exploration and sample collection.",
-        source: "Science Today",
-        url: "#sample-3",
-        category: "science",
-        date: date,
-        keyFacts: [
-          "Chandrayaan-4 mission launched successfully",
-          "Lunar sample collection planned",
-          "Advanced exploration technology",
-          "International collaboration involved"
-        ],
-        examRelevance: {
-          upsc: 8,
-          pcs: 5,
-          ssc: 7,
-          banking: 3,
-          railway: 6
-        },
-        relatedTopics: ["ISRO", "Space Technology", "Lunar Exploration", "Scientific Research"],
-        mcqQuestion: {
-          question: "Which is the latest lunar mission launched by ISRO?",
-          options: {
-            A: "Chandrayaan-2",
-            B: "Chandrayaan-3", 
-            C: "Chandrayaan-4",
-            D: "Mangalyaan-2"
-          },
-          correctAnswer: "C",
-          explanation: "Chandrayaan-4 is the latest lunar exploration mission launched by ISRO for advanced lunar studies."
-        },
-        tags: ["science", "ISRO", "space", "technology"],
-        difficulty: "Easy",
         importance: 7,
         publishDate: new Date().toISOString(),
         createdAt: new Date().toISOString(),
         processedWith: "Sample"
-      },
-      {
-        id: `CA-SAMPLE-${Date.now()}-4`,
-        title: "Supreme Court Verdict on Environmental Protection Act",
-        summary: "Supreme Court delivers landmark judgment on environmental protection, setting new guidelines for industrial compliance and pollution control.",
-        content: "The Supreme Court has issued comprehensive guidelines for environmental protection, mandating stricter compliance measures for industries.",
-        source: "Legal News",
-        url: "#sample-4",
-        category: "environment",
-        date: date,
-        keyFacts: [
-          "Supreme Court environmental verdict",
-          "New industrial compliance guidelines",
-          "Pollution control measures strengthened",
-          "Timeline for implementation set"
-        ],
-        examRelevance: {
-          upsc: 9,
-          pcs: 7,
-          ssc: 6,
-          banking: 4,
-          railway: 5
-        },
-        relatedTopics: ["Environmental Law", "Supreme Court", "Pollution Control", "Industrial Policy"],
-        mcqQuestion: {
-          question: "Which court delivered the recent landmark judgment on environmental protection?",
-          options: {
-            A: "High Court",
-            B: "District Court",
-            C: "Supreme Court",
-            D: "Green Tribunal"
-          },
-          correctAnswer: "C",
-          explanation: "The Supreme Court of India delivered the landmark judgment on environmental protection and industrial compliance."
-        },
-        tags: ["environment", "supreme court", "pollution", "law"],
-        difficulty: "Medium",
-        importance: 8,
-        publishDate: new Date().toISOString(),
-        createdAt: new Date().toISOString(),
-        processedWith: "Sample"
-      },
-      {
-        id: `CA-SAMPLE-${Date.now()}-5`,
-        title: "India Achieves Renewable Energy Milestone: 50% Target Reached",
-        summary: "India reaches significant renewable energy milestone by achieving 50% of electricity generation from renewable sources ahead of schedule.",
-        content: "India has successfully achieved 50% of its electricity generation from renewable energy sources, surpassing expectations and timeline.",
-        source: "Energy Today",
-        url: "#sample-5",
-        category: "environment",
-        date: date,
-        keyFacts: [
-          "50% renewable energy target achieved",
-          "Ahead of scheduled timeline",
-          "Solar and wind energy major contributors",
-          "International recognition received"
-        ],
-        examRelevance: {
-          upsc: 8,
-          pcs: 6,
-          ssc: 7,
-          banking: 5,
-          railway: 6
-        },
-        relatedTopics: ["Renewable Energy", "Climate Change", "Energy Policy", "Sustainable Development"],
-        mcqQuestion: {
-          question: "What percentage of renewable energy target has India recently achieved?",
-          options: {
-            A: "30%",
-            B: "40%",
-            C: "50%",
-            D: "60%"
-          },
-          correctAnswer: "C",
-          explanation: "India has achieved 50% of its electricity generation from renewable energy sources, marking a significant milestone."
-        },
-        tags: ["environment", "renewable", "energy", "achievement"],
-        difficulty: "Easy",
-        importance: 8,
-        publishDate: new Date().toISOString(),
-        createdAt: new Date().toISOString(),
-        processedWith: "Sample"
-      }
-    ];
-
+      });
+    }
+  
     // Save sample data to database
     try {
       await this.repository.saveCurrentAffairs(sampleData, date);
@@ -737,7 +594,7 @@ async getAllCurrentAffairs(page = 1, limit = 50, category = null, sortBy = 'date
     } catch (error) {
       console.error('Error saving sample data:', error);
     }
-
+  
     return sampleData;
   }
 
@@ -1038,14 +895,7 @@ async getAllCurrentAffairs(page = 1, limit = 50, category = null, sortBy = 'date
     };
   }
 
-  /**
-   * Utility methods
-   */
-  
-  async generateUniqueId() {
-    const id = await this.repository.getNextSequentialId();
-    return id;
-  }
+
   
   
   
