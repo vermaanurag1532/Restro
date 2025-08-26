@@ -171,40 +171,42 @@ export class CurrentAffairsRepository {
           \`importance\` = VALUES(\`importance\`),
           \`updated_at\` = CURRENT_TIMESTAMP
       `;
-
+  
       const results = [];
       
       for (const item of currentAffairsArray) {
         try {
+          // Ensure all values are properly formatted
           const values = [
-            item.id,
-            item.title,
-            item.summary,
-            item.content,
-            item.source,
-            item.url,
-            item.category,
+            this.ensureString(item.id),
+            this.ensureString(item.title),
+            this.ensureString(item.summary),
+            this.ensureString(item.content),
+            this.ensureString(item.source),
+            this.ensureString(item.url),
+            this.ensureString(item.category),
             date,
             this.stringifyJSON(item.keyFacts || []),
             this.stringifyJSON(item.examRelevance || {}),
             this.stringifyJSON(item.relatedTopics || []),
             this.stringifyJSON(item.mcqQuestion || null),
             this.stringifyJSON(item.tags || []),
-            item.difficulty || 'Medium',
-            item.importance || 5,
-            item.publishDate
+            this.ensureString(item.difficulty || 'Medium'),
+            this.ensureNumber(item.importance || 5),
+            item.publishDate ? new Date(item.publishDate).toISOString().split('T')[0] : null
           ];
-
+  
           const result = await this.query(insertQuery, values);
           results.push(result);
-
+  
           // Update trending topics
           await this.updateTrendingTopics(item.title, item.category, date, item.examRelevance);
         } catch (error) {
           console.error('Error saving individual current affairs item:', error);
+          console.error('Problematic item:', JSON.stringify(item, null, 2));
         }
       }
-
+  
       return results;
     } catch (error) {
       console.error('Error saving current affairs:', error);
@@ -212,32 +214,96 @@ export class CurrentAffairsRepository {
     }
   }
 
+  ensureString(value) {
+    if (value === null || value === undefined) {
+      return '';
+    }
+    if (typeof value === 'string') {
+      return value;
+    }
+    if (typeof value === 'number' || typeof value === 'boolean') {
+      return value.toString();
+    }
+    if (typeof value === 'object') {
+      return JSON.stringify(value);
+    }
+    return String(value);
+  }
+  
+  /**
+   * Ensure value is a number
+   */
+  ensureNumber(value) {
+    if (value === null || value === undefined) {
+      return 5; // Default importance
+    }
+    if (typeof value === 'number') {
+      return value;
+    }
+    if (typeof value === 'string') {
+      const num = parseFloat(value);
+      return isNaN(num) ? 5 : num;
+    }
+    return 5; // Fallback
+  }
+  
+  /**
+   * Improved JSON stringification with validation
+   */
+  stringifyJSON(data) {
+    try {
+      if (data === null || data === undefined) {
+        return 'null';
+      }
+      
+      // If it's already a string, check if it's valid JSON
+      if (typeof data === 'string') {
+        try {
+          JSON.parse(data);
+          return data; // Already valid JSON string
+        } catch {
+          // Not valid JSON, wrap it as a string value
+          return JSON.stringify(data);
+        }
+      }
+      
+      // Convert object/array to JSON string
+      return JSON.stringify(data);
+    } catch (error) {
+      console.error('Error stringifying JSON:', error, 'Data:', data);
+      return 'null';
+    }
+  }
+
   /**
    * Update trending topics with better JSON handling
    */
-  async updateTrendingTopics(topic, category, date, examRelevance) {
-    try {
-      const updateQuery = `
-        INSERT INTO \`Trending_Topics\` (
-          \`topic\`, \`category\`, \`frequency\`, \`exam_relevance\`, \`date\`
-        ) VALUES (?, ?, 1, ?, ?)
-        ON DUPLICATE KEY UPDATE
-          \`frequency\` = \`frequency\` + 1,
-          \`last_mentioned\` = CURRENT_TIMESTAMP
-      `;
+/**
+ * Update trending topics with better JSON handling
+ */
+async updateTrendingTopics(topic, category, date, examRelevance) {
+  try {
+    const updateQuery = `
+      INSERT INTO \`Trending_Topics\` (
+        \`topic\`, \`category\`, \`frequency\`, \`exam_relevance\`, \`date\`
+      ) VALUES (?, ?, 1, ?, ?)
+      ON DUPLICATE KEY UPDATE
+        \`frequency\` = \`frequency\` + 1,
+        \`last_mentioned\` = CURRENT_TIMESTAMP
+    `;
 
-      const values = [
-        topic.substring(0, 500), // Limit topic length
-        category,
-        this.stringifyJSON(examRelevance || {}),
-        date
-      ];
+    const values = [
+      this.ensureString(topic).substring(0, 500), // Limit topic length
+      this.ensureString(category),
+      this.stringifyJSON(examRelevance || {}),
+      date
+    ];
 
-      await this.query(updateQuery, values);
-    } catch (error) {
-      console.error('Error updating trending topics:', error);
-    }
+    await this.query(updateQuery, values);
+  } catch (error) {
+    console.error('Error updating trending topics:', error);
   }
+}
 
   /**
    * Get current affairs by date with improved JSON parsing
