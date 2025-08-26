@@ -1042,9 +1042,11 @@ async getAllCurrentAffairs(page = 1, limit = 50, category = null, sortBy = 'date
    * Utility methods
    */
   
-  generateUniqueId() {
-    return this.repository.getNextSequentialId;
+  async generateUniqueId() {
+    const id = await this.repository.getNextSequentialId();
+    return id;
   }
+  
   
   extractPublishDate(item) {
     if (item.pagemap && item.pagemap.metatags) {
