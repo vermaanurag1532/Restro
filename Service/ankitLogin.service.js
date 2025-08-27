@@ -93,7 +93,7 @@ const ankitLoginService = {
         password: hashedPassword,
         name: userData.name,
         deviceInfo: userData.device_info || null,
-        preferences: userData.Preferences
+        preferences: userData.preferences
       };
 
       // Create user
