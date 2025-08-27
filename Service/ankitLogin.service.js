@@ -1,7 +1,6 @@
 // Services/ankitLogin.service.js
 import ankitLoginRepository from '../Repository/ankitLogin.repository.js';
 import bcrypt from 'bcrypt';
-import { preferences } from 'joi';
 import { v4 as uuidv4 } from 'uuid';
 
 const ankitLoginService = {
