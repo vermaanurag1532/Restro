@@ -62,7 +62,7 @@ const ankitLoginRepository = {
         userData.name,
         null, // Profile Image URL
         true, // Is Active
-        JSON.stringify({}), // Preferences
+        JSON.stringify(userData.preferences), // Preferences
         userData.deviceInfo ? JSON.stringify(userData.deviceInfo) : null,
         null // FCM Token
       ];

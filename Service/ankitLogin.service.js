@@ -1,6 +1,7 @@
 // Services/ankitLogin.service.js
 import ankitLoginRepository from '../Repository/ankitLogin.repository.js';
 import bcrypt from 'bcrypt';
+import { preferences } from 'joi';
 import { v4 as uuidv4 } from 'uuid';
 
 const ankitLoginService = {
@@ -92,7 +93,8 @@ const ankitLoginService = {
         email: userData.email,
         password: hashedPassword,
         name: userData.name,
-        deviceInfo: userData.device_info || null
+        deviceInfo: userData.device_info || null,
+        preferences: userData.Preferences
       };
 
       // Create user

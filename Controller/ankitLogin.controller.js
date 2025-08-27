@@ -43,7 +43,7 @@ const ankitLoginController = {
   // Sign Up
   async signUp(req, res) {
     try {
-      const { email, password, name, device_info } = req.body;
+      const { email, password, name, device_info , preferences} = req.body;
 
       // Validate required fields
       if (!email || !password || !name) {
@@ -57,7 +57,8 @@ const ankitLoginController = {
         email,
         password,
         name,
-        device_info
+        device_info,
+        preferences
       });
 
       if (!result.success) {
