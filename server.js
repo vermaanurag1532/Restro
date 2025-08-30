@@ -9,6 +9,7 @@ import { Server } from 'socket.io';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
+import cron from 'node-cron'; // ADDED: For scheduling
 
 // Load environment variables
 dotenv.config();
@@ -185,7 +186,8 @@ app.get('/health', (req, res) => {
       database: 'Connected',
       websocket: 'Active',
       ai: process.env.GOOGLE_API_KEY ? 'Configured' : 'Not Configured',
-      reports: fs.existsSync(reportsDir) ? 'Available' : 'Not Available'
+      reports: fs.existsSync(reportsDir) ? 'Available' : 'Not Available',
+      currentAffairs: 'Auto-generation enabled' // ADDED: Current affairs status
     },
     uptime: process.uptime(),
     memory: process.memoryUsage()
@@ -231,6 +233,101 @@ app.use('/user', UserPreferencesRouter);
 // Apply Business Insights routes
 app.use('/api/insights', businessInsightsRoutes);
 
+// ============================================================================
+// ADDED: Daily Current Affairs Auto-Generation System
+// ============================================================================
+
+// Import the daily generator service
+import {DailyGeneratorService} from './Service/dailyGenerator.service.js';
+
+// Initialize the daily generator
+const dailyGenerator = new DailyGeneratorService();
+
+/**
+ * Function to start the daily current affairs generation scheduler
+ */
+const startCurrentAffairsScheduler = () => {
+  console.log('⏰ Initializing daily current affairs scheduler...');
+  
+  // Schedule to run every day at 3:00 AM (adjust timezone as needed)
+  cron.schedule('0 3 * * *', async () => {
+    console.log('⏰ Cron job triggered: Running daily current affairs generation');
+    try {
+      const result = await dailyGenerator.executeDailyGeneration();
+      console.log('✅ Daily generation result:', result);
+      
+      // Broadcast update via Socket.IO if new content was generated
+      if (result.generated) {
+        io.emit('current-affairs-updated', {
+          message: `New current affairs generated: ${result.count} items`,
+          date: result.date,
+          timestamp: new Date().toISOString()
+        });
+      }
+    } catch (error) {
+      console.error('❌ Error in daily generation cron job:', error);
+    }
+  }, {
+    scheduled: true,
+    timezone: "Asia/Kolkata" // Adjust to your preferred timezone
+  });
+  
+  console.log('✅ Daily current affairs scheduler started. Will run at 3:00 AM every day.');
+};
+
+/**
+ * Manual trigger endpoint for testing daily generation
+ */
+app.get('/admin/generate-current-affairs', async (req, res) => {
+  try {
+    console.log('🔧 Manually triggering current affairs generation...');
+    const result = await dailyGenerator.executeDailyGeneration();
+    
+    res.json({
+      success: true,
+      message: 'Manual generation completed',
+      result
+    });
+  } catch (error) {
+    console.error('Error in manual generation:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Manual generation failed',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Endpoint to check generation status
+ */
+app.get('/admin/current-affairs-status', async (req, res) => {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const repository = dailyGenerator.repository;
+    const existingData = await repository.getCurrentAffairsByDate(today);
+    
+    res.json({
+      success: true,
+      date: today,
+      hasData: existingData.length > 0,
+      itemCount: existingData.length,
+      nextScheduledRun: '3:00 AM daily',
+      status: existingData.length > 0 ? 'Data available' : 'No data yet'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to check status',
+      error: error.message
+    });
+  }
+});
+
+// ============================================================================
+// END OF ADDED CODE
+// ============================================================================
+
 // Root endpoint with comprehensive API documentation
 app.get('/businessInsights', (req, res) => {
   res.json({
@@ -263,26 +360,40 @@ app.get('/businessInsights', (req, res) => {
           customers: 'GET /api/insights/customers?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD',
           operations: 'GET /api/insights/operations?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD',
           healthCheck: 'GET /api/insights/health-check'
+        },
+        
+        // ADDED: Current Affairs endpoints
+        currentAffairs: {
+          daily: 'GET /CuurentAffair/daily',
+          byDate: 'GET /CuurentAffair/range?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD',
+          byCategory: 'GET /CuurentAffair/category/:category',
+          quiz: 'GET /CuurentAffair/quiz',
+          trending: 'GET /CuurentAffair/trending',
+          adminGenerate: 'GET /admin/generate-current-affairs',
+          adminStatus: 'GET /admin/current-affairs-status'
         }
       },
       features: {
         websocket: 'Real-time updates available via Socket.IO',
-        ai: 'Gemini AI integration for business insights',
+        ai: 'Gemini AI integration for business insights and current affairs',
         reports: 'PDF report generation with charts',
         analytics: 'Comprehensive business analytics',
         security: 'Helmet, CORS, Rate limiting',
-        monitoring: 'Health checks and logging'
+        monitoring: 'Health checks and logging',
+        autoGeneration: 'Daily current affairs auto-generation at 3:00 AM'
       },
       examples: {
         quickInsights: `${req.protocol}://${req.get('host')}/api/insights/quick`,
         monthlyReport: `${req.protocol}://${req.get('host')}/api/insights?startDate=2023-01-01&endDate=2023-01-31`,
         pdfDownload: `${req.protocol}://${req.get('host')}/api/insights/pdf?startDate=2023-01-01&endDate=2023-01-31`,
-        healthCheck: `${req.protocol}://${req.get('host')}/health`
+        healthCheck: `${req.protocol}://${req.get('host')}/health`,
+        currentAffairs: `${req.protocol}://${req.get('host')}/CuurentAffair/daily`,
+        generateCurrentAffairs: `${req.protocol}://${req.get('host')}/admin/generate-current-affairs`
       }
     },
     websocket: {
       url: `ws://${req.get('host')}`,
-      events: ['subscribe-insights', 'unsubscribe-insights'],
+      events: ['subscribe-insights', 'unsubscribe-insights', 'current-affairs-updated'],
       namespaces: ['business-insights']
     }
   });
@@ -321,7 +432,10 @@ app.use('*', (req, res) => {
       'GET,POST,PUT,DELETE /Admin',
       'GET /orderReport',
       'GET,POST /feedback',
-      'GET /api/insights/*'
+      'GET /api/insights/*',
+      'GET /CuurentAffair/*',
+      'GET /admin/generate-current-affairs',
+      'GET /admin/current-affairs-status'
     ],
     documentation: `${req.protocol}://${req.get('host')}/`,
     timestamp: new Date().toISOString()
@@ -435,6 +549,10 @@ httpServer.listen(PORT, () => {
   console.log(`🤖 Gemini AI: ${process.env.GOOGLE_API_KEY ? '✅ Configured' : '❌ Not Configured'}`);
   console.log(`📈 Business Insights: http://localhost:${PORT}/api/insights/health-check`);
   console.log(`📄 PDF Reports: ${fs.existsSync(reportsDir) ? '✅ Available' : '❌ Directory not found'}`);
+  console.log(`📰 Current Affairs: ✅ Auto-generation enabled (3:00 AM daily)`);
+  
+  // ADDED: Start the current affairs scheduler
+  startCurrentAffairsScheduler();
   
   if (!process.env.GOOGLE_API_KEY) {
     console.warn('\n⚠️  Warning: GOOGLE_API_KEY not found.');
@@ -451,7 +569,13 @@ httpServer.listen(PORT, () => {
   console.log('   • GET /api/insights/customers - Customer analytics');
   console.log('   • GET /api/insights/operations - Operational insights');
   
-  console.log('\n🎯 Ready to serve business insights! 📊\n');
+  console.log('\n📰 Current Affairs Endpoints:');
+  console.log('   • GET /CuurentAffair/daily - Get daily current affairs');
+  console.log('   • GET /CuurentAffair/quiz - Generate current affairs quiz');
+  console.log('   • GET /admin/generate-current-affairs - Manual generation trigger');
+  console.log('   • GET /admin/current-affairs-status - Check generation status');
+  
+  console.log('\n🎯 Ready to serve business insights and current affairs! 📊📰\n');
 });
 
 export default app;
